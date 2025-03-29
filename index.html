@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather Dashboard</title>
+  #
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <div class="w-52 bg-gray-800 p-6 space-y-6">
+      <h2 class="text-xl font-bold">Sections</h2>
+      <button onclick="showSection('current')" class="block w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Current Weather</button>
+      <button onclick="showSection('past')" class="block w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Past Weather</button>
+      
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 p-6">
+      <!-- Current Weather Section -->
+      <div id="current">
+        <h1 class="text-3xl font-bold mb-4 text-center">Current Weather</h1>
+        <div class="mb-4 flex justify-center">
+          <select id="currentCitySelect" class="bg-gray-800 text-white px-4 py-2 rounded">
+            <option value="melbourne">Melbourne</option>
+            <option value="sydney">Sydney</option>
+            <option value="brisbane">Brisbane</option>
+            <option value="perth">Perth</option>
+          </select>
+        </div>
+
+        <div id="cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 text-center"></div>
+        <div id="map" style="height: 400px;"></div>
+        <h2 class="text-2xl font-semibold mb-4 text-center">Next 7 Days Forecast</h2>
+        <div class="bg-gray-800 p-6 rounded-lg max-h">
+          <canvas id="forecastChart" class="w-full h-80"></canvas>
+        </div>
+      </div>
+
+      <!-- Past Weather Section -->
+      <div id="past" class="hidden">
+        <h1 class="text-3xl font-bold mb-4 text-center">Past Weather Trends</h1>
+        <div class="mb-4 flex flex-wrap justify-center gap-4">
+          <select id="pastCitySelect" class="bg-gray-800 text-white px-4 py-2 rounded">
+            <option value="melbourne">Melbourne</option>
+            <option value="sydney">Sydney</option>
+            <option value="brisbane">Brisbane</option>
+            <option value="perth">Perth</option>
+          </select>
+          <select id="yearSelect" class="bg-gray-800 text-white px-4 py-2 rounded"></select>
+          <select id="monthSelect" class="bg-gray-800 text-white px-4 py-2 rounded">
+            <option value="01">January</option>
+            <option value="02">February</option>
+            <option value="03">March</option>
+            <option value="04">April</option>
+            <option value="05">May</option>
+            <option value="06">June</option>
+            <option value="07">July</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+          
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div class="bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Max Temperature Trend</h2>
+            <canvas id="tempChart" class="w-full h-64"></canvas>
+          </div>
+          <div class="bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Rainfall Trend</h2>
+            <canvas id="rainChart" class="w-full h-64"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize map
+    const map = L.map('map').setView([-37.8136, 144.9631], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    function showSection(name) {
+      document.getElementById("current").classList.add("hidden");
+      document.getElementById("past").classList.add("hidden");
+      document.getElementById(name).classList.remove("hidden");
+    }
+
+    function windDirection(deg) {
+      const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+      return directions[Math.round(deg / 45) % 8];
+    }
+
+    const cities = {
+      melbourne: [-37.8136, 144.9631],
+      sydney: [-33.8688, 151.2093],
+      brisbane: [-27.4698, 153.0251],
+      perth: [-31.9505, 115.8605]
+    };
+
+    const forecastChart = new Chart(document.getElementById('forecastChart').getContext('2d'), {
+      type: 'line',
+      data: { labels: [], datasets: [
+        { label: 'Max Temp', data: [], borderColor: 'orange', fill: false },
+        { label: 'Min Temp', data: [], borderColor: 'lightblue', fill: false }
+      ]},
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: 'white' } } },
+        scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } }
+      }
+    });
+
+    const tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: 'Max Temp', data: [], borderColor: 'red', fill: false }] },
+      options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } } }
+    });
+
+    const rainChart = new Chart(document.getElementById('rainChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: 'Precipitation', data: [], backgroundColor: 'rgba(54, 162, 235, 0.5)' }] },
+      options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } } }
+    });
+
+    // Clear existing markers
+    let currentMarker = null;
+
+    async function loadCurrentWeather(lat, lon) {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=auto`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const current = data.current_weather;
+        const daily = data.daily;
+
+        const cards = document.getElementById("cards");
+        cards.innerHTML = '';
+        cards.innerHTML += createCard("Temperature", `${current.temperature} °C`, "🌡️");
+        cards.innerHTML += createCard("Wind", `${current.windspeed} km/h`, "💨");
+        cards.innerHTML += createCard("Direction", windDirection(current.winddirection), "🧭");
+        cards.innerHTML += createCard("Rain", `${daily.precipitation_sum[0]} mm`, "☔");
+
+        forecastChart.data.labels = daily.time;
+        forecastChart.data.datasets[0].data = daily.temperature_2m_max;
+        forecastChart.data.datasets[1].data = daily.temperature_2m_min;
+        forecastChart.update();
+      } catch (error) {
+        console.error("Error loading current weather:", error);
+      }
+    }
+
+    async function loadPastWeather(lat, lon, year, month) {
+      try {
+        const start = `${year}-${month}-01`;
+        const end = `${year}-${month}-${new Date(year, month, 0).getDate()}`;
+        const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,precipitation_sum&timezone=auto`;
+        const res = await fetch(url);
+        const data = await res.json();
+        console.log(data)
+
+        tempChart.data.labels = data.daily.time;
+        tempChart.data.datasets[0].data = data.daily.temperature_2m_max;
+        tempChart.update();
+
+        rainChart.data.labels = data.daily.time;
+        rainChart.data.datasets[0].data = data.daily.precipitation_sum;
+        rainChart.update();
+      } catch (error) {
+        console.error("Error loading past weather:", error);
+      }
+    }
+
+    function createCard(title, value, icon = '') {
+      return `<div class="bg-gray-800 p-4 rounded-lg shadow-md">
+        <h2 class="text-md font-semibold mb-2">${title}</h2>
+        <p class="text-2xl font-bold">${value} ${icon}</p>
+      </div>`;
+    }
+
+    document.getElementById("currentCitySelect").addEventListener("change", (e) => {
+      const city = e.target.value;
+      const [lat, lon] = cities[city];
+      
+      // Remove existing marker
+      if (currentMarker) {
+        map.removeLayer(currentMarker);
+      }
+      
+      // Add new marker and center map
+      map.setView([lat, lon], 7);
+      currentMarker = L.marker([lat, lon])
+        .addTo(map)
+        .bindPopup(city.charAt(0).toUpperCase() + city.slice(1))
+        .openPopup();
+      
+      // Load current weather for the selected city
+      loadCurrentWeather(lat, lon);
+    });
+
+    // Add event listeners to automatically apply past weather selection
+    document.getElementById("pastCitySelect").addEventListener("change", updatePastWeather);
+    document.getElementById("yearSelect").addEventListener("change", updatePastWeather);
+    document.getElementById("monthSelect").addEventListener("change", updatePastWeather);
+
+    function updatePastWeather() {
+      const city = document.getElementById("pastCitySelect").value;
+      const year = document.getElementById("yearSelect").value;
+      const month = document.getElementById("monthSelect").value;
+      const [lat, lon] = cities[city];
+      loadPastWeather(lat, lon, year, month);
+    }
+
+    const now = new Date().getFullYear();
+    const yearSel = document.getElementById("yearSelect");
+    for (let y = now; y >= now - 20; y--) {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y;
+      yearSel.appendChild(opt);
+    }
+
+    // Initial load for Melbourne and past weather
+    loadCurrentWeather(...cities['melbourne']);
+    updatePastWeather();
+  </script>
+</body>
+</html>
