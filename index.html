@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Weather Dashboard</title>
-  #
+  <!--import tailwindcss-->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!--import leaflet for the interactive map-->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /> 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -25,6 +26,9 @@
       <!-- Current Weather Section -->
       <div id="current">
         <h1 class="text-3xl font-bold mb-4 text-center">Current Weather</h1>
+        <div class="flex justify-center mb-4">
+          <button onclick="locateUser()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">📍 Use My Location</button>
+        </div>
         <div class="mb-4 flex justify-center">
           <select id="currentCitySelect" class="bg-gray-800 text-white px-4 py-2 rounded">
             <option value="melbourne">Melbourne</option>
@@ -46,9 +50,15 @@
       <div id="past" class="hidden">
         <h1 class="text-3xl font-bold mb-4 text-center">Past Weather Trends</h1>
         <div class="mb-4 flex flex-wrap justify-center gap-4">
-          <select id="pastCitySelect" class="bg-gray-800 text-white px-4 py-2 rounded">
+          <select id="pastCitySelectA" class="bg-gray-800 text-white px-4 py-2 rounded">
             <option value="melbourne">Melbourne</option>
             <option value="sydney">Sydney</option>
+            <option value="brisbane">Brisbane</option>
+            <option value="perth">Perth</option>
+          </select>
+          <select id="pastCitySelectB" class="bg-gray-800 text-white px-4 py-2 rounded">
+            <option value="sydney">Sydney</option>
+            <option value="melbourne">Melbourne</option>
             <option value="brisbane">Brisbane</option>
             <option value="perth">Perth</option>
           </select>
@@ -85,11 +95,46 @@
   </div>
 
   <script>
+
     // Initialize map
-    const map = L.map('map').setView([-37.8136, 144.9631], 10);
+    const map = L.map('map').setView([-37.8136, 144.9631], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
+    var popup = L.popup();
+    function onMapClick(e){
+      popup
+        .setLatLng(e.latlng)
+        .setContent("Current location at " + e.latlng.toString())
+        .openOn(map);
+} 
+
+    function locateUser() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            map.setView([lat, lon], 160);
+            marker.setLatLng([lat, lon]).bindPopup("Your Location").openPopup();
+            loadCurrentWeather('your location', lat, lon);
+          },
+          () => {
+            alert("Unable to retrieve your location. Using default city.");
+            const [lat, lon] = cities['melbourne'];
+            map.setView([lat, lon], 10);
+            marker.setLatLng([lat, lon]).bindPopup("Melbourne").openPopup();
+            loadCurrentWeather('melbourne', lat, lon);
+          }
+        );
+      } else {
+        alert("Geolocation not supported.");
+      }
+    }
+    
+    
+    
+    map.on('click', onMapClick);
 
     function showSection(name) {
       document.getElementById("current").classList.add("hidden");
@@ -135,9 +180,13 @@
       options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } } }
     });
 
+
+
+
+
     // Clear existing markers
     let currentMarker = null;
-
+    // use BOM to retrieve the most recent data
     async function loadCurrentWeather(lat, lon) {
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=auto`;
@@ -163,26 +212,63 @@
       }
     }
 
-    async function loadPastWeather(lat, lon, year, month) {
-      try {
-        const start = `${year}-${month}-01`;
-        const end = `${year}-${month}-${new Date(year, month, 0).getDate()}`;
-        const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,precipitation_sum&timezone=auto`;
-        const res = await fetch(url);
-        const data = await res.json();
-        console.log(data)
+    async function loadPastWeatherCompare(cityA, cityB, year, month) {
+  const start = `${year}-${month}-01`;
+  const end = `${year}-${month}-${new Date(year, month, 0).getDate()}`;
 
-        tempChart.data.labels = data.daily.time;
-        tempChart.data.datasets[0].data = data.daily.temperature_2m_max;
-        tempChart.update();
+  const [latA, lonA] = cities[cityA];
+  const [latB, lonB] = cities[cityB];
 
-        rainChart.data.labels = data.daily.time;
-        rainChart.data.datasets[0].data = data.daily.precipitation_sum;
-        rainChart.update();
-      } catch (error) {
-        console.error("Error loading past weather:", error);
-      }
+  const urlA = `https://archive-api.open-meteo.com/v1/archive?latitude=${latA}&longitude=${lonA}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,precipitation_sum&timezone=auto`;
+  const urlB = `https://archive-api.open-meteo.com/v1/archive?latitude=${latB}&longitude=${lonB}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,precipitation_sum&timezone=auto`;
+
+  const [resA, resB] = await Promise.all([fetch(urlA), fetch(urlB)]);
+  const dataA = await resA.json();
+  const dataB = await resB.json();
+
+  // 更新温度图
+  tempChart.data.labels = dataA.daily.time;
+  tempChart.data.datasets = [
+    {
+      label: `Max Temp (${cityA})`,
+      data: dataA.daily.temperature_2m_max,
+      borderColor: 'red',
+      fill: false,
+    },
+    {
+      label: `Max Temp (${cityB})`,
+      data: dataB.daily.temperature_2m_max,
+      borderColor: 'lightblue',
+      fill: false,
     }
+  ];
+  tempChart.update();
+
+  // 更新降雨图，只用城市 A 的数据（或可扩展）
+  rainChart.data.labels = dataA.daily.time;
+  rainChart.data.datasets = [
+    {
+      label: `Rain (${cityA})`,
+      data: dataA.daily.precipitation_sum,
+      backgroundColor: 'rgba(54, 162, 235, 0.6)',
+    },
+    {
+      label: `Rain (${cityB})`,
+      data: dataB.daily.precipitation_sum,
+      backgroundColor: 'rgba(0, 255, 127, 0.5)', // spring green 🌱
+    }
+  ];
+  rainChart.update();
+}
+
+
+function updatePastWeather() {
+  const cityA = document.getElementById("pastCitySelectA").value;
+  const cityB = document.getElementById("pastCitySelectB").value;
+  const year = document.getElementById("yearSelect").value;
+  const month = document.getElementById("monthSelect").value;
+  loadPastWeatherCompare(cityA, cityB, year, month);
+}
 
     function createCard(title, value, icon = '') {
       return `<div class="bg-gray-800 p-4 rounded-lg shadow-md">
@@ -212,17 +298,12 @@
     });
 
     // Add event listeners to automatically apply past weather selection
-    document.getElementById("pastCitySelect").addEventListener("change", updatePastWeather);
+    document.getElementById("pastCitySelectA").addEventListener("change", updatePastWeather);
+    document.getElementById("pastCitySelectB").addEventListener("change", updatePastWeather);
     document.getElementById("yearSelect").addEventListener("change", updatePastWeather);
     document.getElementById("monthSelect").addEventListener("change", updatePastWeather);
 
-    function updatePastWeather() {
-      const city = document.getElementById("pastCitySelect").value;
-      const year = document.getElementById("yearSelect").value;
-      const month = document.getElementById("monthSelect").value;
-      const [lat, lon] = cities[city];
-      loadPastWeather(lat, lon, year, month);
-    }
+ 
 
     const now = new Date().getFullYear();
     const yearSel = document.getElementById("yearSelect");
