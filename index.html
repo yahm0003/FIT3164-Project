@@ -9,7 +9,9 @@
   <!--import leaflet for the interactive map-->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /> 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Import Chart.js and its annotation plugin -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
   <div class="flex min-h-screen">
@@ -19,6 +21,13 @@
       <button onclick="showSection('current')" class="block w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Current Weather</button>
       <button onclick="showSection('past')" class="block w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Past Weather</button>
       
+      <!-- Unit Converter -->
+      <div class="mt-6">
+        <h2 class="text-xl font-bold mb-2">Units</h2>
+        <button id="unitToggle" onclick="toggleUnits()" class="block w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+          Switch to °F/mph
+        </button>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -26,20 +35,58 @@
       <!-- Current Weather Section -->
       <div id="current">
         <h1 class="text-3xl font-bold mb-4 text-center">Current Weather</h1>
-        <div class="flex justify-center mb-4">
-          <button onclick="locateUser()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">📍 Use My Location</button>
-        </div>
-        <div class="mb-4 flex justify-center">
-          <select id="currentCitySelect" class="bg-gray-800 text-white px-4 py-2 rounded">
-            <option value="melbourne">Melbourne</option>
-            <option value="sydney">Sydney</option>
-            <option value="brisbane">Brisbane</option>
-            <option value="perth">Perth</option>
-          </select>
+        
+        <!-- City Weather Cards Container -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <!-- Melbourne Weather Cards -->
+          <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-xl font-bold mb-3 text-center">Melbourne</h2>
+            <div class="grid grid-cols-1 gap-2" id="melbourneCards"></div>
+          </div>
+
+          <!-- Sydney Weather Cards -->
+          <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-xl font-bold mb-3 text-center">Sydney</h2>
+            <div class="grid grid-cols-1 gap-2" id="sydneyCards"></div>
+          </div>
+
+          <!-- Brisbane Weather Cards -->
+          <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-xl font-bold mb-3 text-center">Brisbane</h2>
+            <div class="grid grid-cols-1 gap-2" id="brisbaneCards"></div>
+          </div>
+
+          <!-- Perth Weather Cards -->
+          <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-xl font-bold mb-3 text-center">Perth</h2>
+            <div class="grid grid-cols-1 gap-2" id="perthCards"></div>
+          </div>
+
+          <!-- Adelaide Weather Cards -->
+          <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-xl font-bold mb-3 text-center">Adelaide</h2>
+            <div class="grid grid-cols-1 gap-2" id="adelaideCards"></div>
+          </div>
+
+          <!-- Hobart Weather Cards -->
+          <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-xl font-bold mb-3 text-center">Hobart</h2>
+            <div class="grid grid-cols-1 gap-2" id="hobartCards"></div>
+          </div>
+
+          <!-- Darwin Weather Cards -->
+          <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-xl font-bold mb-3 text-center">Darwin</h2>
+            <div class="grid grid-cols-1 gap-2" id="darwinCards"></div>
+          </div>
+
+          <!-- Canberra Weather Cards -->
+          <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-xl font-bold mb-3 text-center">Canberra</h2>
+            <div class="grid grid-cols-1 gap-2" id="canberraCards"></div>
+          </div>
         </div>
 
-        <div id="cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 text-center"></div>
-        <div id="map" style="height: 400px;"></div>
         <h2 class="text-2xl font-semibold mb-4 text-center">Next 7 Days Forecast</h2>
         <div class="bg-gray-800 p-6 rounded-lg max-h">
           <canvas id="forecastChart" class="w-full h-80"></canvas>
@@ -48,7 +95,7 @@
 
       <!-- Past Weather Section -->
       <div id="past" class="hidden">
-        <h1 class="text-3xl font-bold mb-4 text-center">Past Weather Trends</h1>
+        <h1 class="text-3xl font-bold mb-4 text-center">Weather Trends Analysis</h1>
         <div class="mb-4 flex flex-wrap justify-center gap-4">
           <select id="pastCitySelectA" class="bg-gray-800 text-white px-4 py-2 rounded">
             <option value="melbourne">Melbourne</option>
@@ -77,36 +124,846 @@
             <option value="11">November</option>
             <option value="12">December</option>
           </select>
-          
         </div>
 
+        <!-- Daily Comparison Charts -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div class="bg-gray-800 p-6 rounded-lg">
-            <h2 class="text-xl font-semibold mb-4">Max Temperature Trend</h2>
+            <h2 class="text-xl font-semibold mb-4">Daily Temperature Comparison</h2>
             <canvas id="tempChart" class="w-full h-64"></canvas>
           </div>
           <div class="bg-gray-800 p-6 rounded-lg">
-            <h2 class="text-xl font-semibold mb-4">Rainfall Trend</h2>
+            <h2 class="text-xl font-semibold mb-4">Daily Rainfall Comparison</h2>
             <canvas id="rainChart" class="w-full h-64"></canvas>
           </div>
+        </div>
+
+        <!-- Annual Pattern Section -->
+        <div class="bg-gray-800 p-6 rounded-lg mb-6">
+          <h2 class="text-xl font-semibold mb-4">Annual Temperature Pattern</h2>
+          <div class="flex items-center gap-4 mb-4">
+            <select id="annualCitySelect" class="bg-gray-700 text-white px-4 py-2 rounded">
+              <option value="melbourne">Melbourne</option>
+              <option value="sydney">Sydney</option>
+              <option value="brisbane">Brisbane</option>
+              <option value="perth">Perth</option>
+            </select>
+            <select id="annualYearSelect" class="bg-gray-700 text-white px-4 py-2 rounded"></select>
+      </div>
+          <canvas id="annualPatternChart" class="w-full h-80"></canvas>
+        </div>
+
+        <!-- Historical Extremes -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div class="bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Temperature Extremes</h2>
+            <canvas id="extremesChart" class="w-full h-64"></canvas>
+          </div>
+          <div class="bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Monthly Rainfall Averages</h2>
+            <canvas id="monthlyRainChart" class="w-full h-64"></canvas>
+          </div>
+        </div>
+
+        <!-- Long-term Trend Analysis -->
+        <div class="bg-gray-800 p-6 rounded-lg mb-6">
+          <h2 class="text-xl font-semibold mb-4">Temperature Trend Analysis</h2>
+          <div class="flex items-center gap-4 mb-4">
+            <select id="trendCitySelect" class="bg-gray-700 text-white px-4 py-2 rounded">
+              <option value="melbourne">Melbourne</option>
+              <option value="sydney">Sydney</option>
+              <option value="brisbane">Brisbane</option>
+              <option value="perth">Perth</option>
+            </select>
+            <div class="flex items-center gap-2">
+              <label class="text-sm">From:</label>
+              <select id="trendStartYear" class="bg-gray-700 text-white px-4 py-2 rounded"></select>
+              <label class="text-sm">To:</label>
+              <select id="trendEndYear" class="bg-gray-700 text-white px-4 py-2 rounded"></select>
+            </div>
+          </div>
+          <canvas id="trendChart" class="w-full h-80"></canvas>
         </div>
       </div>
     </div>
   </div>
 
   <script>
+    // Global variables
+    let map;
+    let popup;
+    let currentMarker;
+    let cityMarkers = {};
+    let useMetric = true;
+    let forecastChart;
+    let tempChart;
+    let rainChart;
+    let annualPatternChart;
+    let extremesChart;
+    let monthlyRainChart;
+    let trendChart;
 
+    // Global variables to store fetched data
+    let weatherData = {};
+    
+    // Function to fetch data from local API
+    async function fetchLocalWeatherData(cities) {
+      try {
+        const queryParams = cities.map(city => `city=${encodeURIComponent(city)}`).join('&');
+        const response = await fetch(`http://127.0.0.1:5000/get_raw_weather?${queryParams}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        weatherData = data; // Store the data globally
+        return data;
+      } catch (error) {
+        console.error('Error fetching weather data:', error);
+        throw error;
+      }
+    }
+
+    // Weather code to icon mapping
+    const weatherIcons = {
+      0: 'https://openweathermap.org/img/wn/01d@2x.png', // Clear sky
+      1: 'https://openweathermap.org/img/wn/02d@2x.png', // Mainly clear
+      2: 'https://openweathermap.org/img/wn/03d@2x.png', // Partly cloudy
+      3: 'https://openweathermap.org/img/wn/04d@2x.png', // Overcast
+      45: 'https://openweathermap.org/img/wn/50d@2x.png', // Foggy
+      48: 'https://openweathermap.org/img/wn/50d@2x.png', // Depositing rime fog
+      51: 'https://openweathermap.org/img/wn/09d@2x.png', // Light drizzle
+      53: 'https://openweathermap.org/img/wn/09d@2x.png', // Moderate drizzle
+      55: 'https://openweathermap.org/img/wn/09d@2x.png', // Dense drizzle
+      61: 'https://openweathermap.org/img/wn/10d@2x.png', // Slight rain
+      63: 'https://openweathermap.org/img/wn/10d@2x.png', // Moderate rain
+      65: 'https://openweathermap.org/img/wn/10d@2x.png', // Heavy rain
+      71: 'https://openweathermap.org/img/wn/13d@2x.png', // Slight snow
+      73: 'https://openweathermap.org/img/wn/13d@2x.png', // Moderate snow
+      75: 'https://openweathermap.org/img/wn/13d@2x.png', // Heavy snow
+      77: 'https://openweathermap.org/img/wn/13d@2x.png', // Snow grains
+      80: 'https://openweathermap.org/img/wn/09d@2x.png', // Slight rain showers
+      81: 'https://openweathermap.org/img/wn/09d@2x.png', // Moderate rain showers
+      82: 'https://openweathermap.org/img/wn/09d@2x.png', // Violent rain showers
+      85: 'https://openweathermap.org/img/wn/13d@2x.png', // Slight snow showers
+      86: 'https://openweathermap.org/img/wn/13d@2x.png', // Heavy snow showers
+      95: 'https://openweathermap.org/img/wn/11d@2x.png', // Thunderstorm
+      96: 'https://openweathermap.org/img/wn/11d@2x.png', // Thunderstorm with slight hail
+      99: 'https://openweathermap.org/img/wn/11d@2x.png'  // Thunderstorm with heavy hail
+    };
+
+    // Function to create weather icon
+    function createWeatherIcon(iconUrl, weatherCode) {
+      // Determine background color based on weather code
+      let bgColor = 'rgba(255, 255, 255, 0.8)'; // default
+      if (weatherCode >= 0 && weatherCode <= 3) {
+        bgColor = 'rgba(135, 206, 235, 0.8)'; // clear to cloudy
+      } else if (weatherCode >= 45 && weatherCode <= 48) {
+        bgColor = 'rgba(192, 192, 192, 0.8)'; // fog
+      } else if (weatherCode >= 51 && weatherCode <= 55) {
+        bgColor = 'rgba(176, 196, 222, 0.8)'; // drizzle
+      } else if (weatherCode >= 61 && weatherCode <= 65) {
+        bgColor = 'rgba(100, 149, 237, 0.8)'; // rain
+      } else if (weatherCode >= 71 && weatherCode <= 77) {
+        bgColor = 'rgba(255, 250, 250, 0.8)'; // snow
+      } else if (weatherCode >= 80 && weatherCode <= 82) {
+        bgColor = 'rgba(70, 130, 180, 0.8)'; // rain showers
+      } else if (weatherCode >= 85 && weatherCode <= 86) {
+        bgColor = 'rgba(240, 248, 255, 0.8)'; // snow showers
+      } else if (weatherCode >= 95 && weatherCode <= 99) {
+        bgColor = 'rgba(47, 79, 79, 0.8)'; // thunderstorm
+      }
+
+      return L.divIcon({
+        html: `<div style="background-color: ${bgColor}; border-radius: 50%; padding: 5px;">
+                <img src="${iconUrl}" style="width: 30px; height: 30px;">
+               </div>`,
+        className: 'weather-icon',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+      });
+    }
+
+    // Define cities
+    const cities = {
+      melbourne: [-37.8136, 144.9631],
+      sydney: [-33.8688, 151.2093],
+      brisbane: [-27.4698, 153.0251],
+      perth: [-31.9505, 115.8605],
+      adelaide: [-34.9285, 138.6007],
+      hobart: [-42.8821, 147.3272],
+      darwin: [-12.4634, 130.9277],
+      canberra: [-35.2809, 149.1300]
+    };
+
+    // Initialize everything after DOM is loaded
+    document.addEventListener('DOMContentLoaded', async function() {
+      try {
+        // Initialize charts
+        initializeCharts();
+        
+        // Load current weather data for all cities
+        await loadCurrentWeather();
+        
+        // Set up periodic updates every 5 minutes
+        setInterval(loadCurrentWeather, 300000);
+        
+        // Load initial past weather data
+        const currentYear = new Date().getFullYear() - 1;
+        const currentMonth = (new Date().getMonth() + 1).toString().padStart(2, '0');
+        await loadPastWeatherCompare();
+
+        // Initialize year selectors with proper range
+        const trendStartYear = document.getElementById('trendStartYear');
+        const trendEndYear = document.getElementById('trendEndYear');
+        const annualYearSelect = document.getElementById('annualYearSelect');
+
+        // Clear existing options
+        trendStartYear.innerHTML = '';
+        trendEndYear.innerHTML = '';
+        annualYearSelect.innerHTML = '';
+
+        // Add options for the last 20 years, excluding future years
+        for (let year = currentYear; year >= currentYear - 19; year--) {
+          const opt1 = document.createElement('option');
+          const opt2 = document.createElement('option');
+          const opt3 = document.createElement('option');
+          
+          opt1.value = opt1.textContent = year;
+          opt2.value = opt2.textContent = year;
+          opt3.value = opt3.textContent = year;
+          
+          trendStartYear.appendChild(opt1);
+          trendEndYear.appendChild(opt2);
+          annualYearSelect.appendChild(opt3);
+        }
+
+        // Set default selections
+        trendStartYear.value = currentYear - 19;
+        trendEndYear.value = currentYear;
+        annualYearSelect.value = currentYear;
+
+        // Initialize the new charts with data
+        await updateAnnualPattern();
+        await updateExtremesAndRainfall();
+        await updateTrendAnalysis();
+
+        // Add event listeners for the new selectors
+        document.getElementById('annualCitySelect').addEventListener('change', () => {
+          updateAnnualPattern();
+          updateExtremesAndRainfall();
+        });
+        document.getElementById('annualYearSelect').addEventListener('change', () => {
+          updateAnnualPattern();
+          updateExtremesAndRainfall();
+        });
+        document.getElementById('trendCitySelect').addEventListener('change', updateTrendAnalysis);
+        document.getElementById('trendStartYear').addEventListener('change', updateTrendAnalysis);
+        document.getElementById('trendEndYear').addEventListener('change', updateTrendAnalysis);
+
+        // Update city select options
+        const citySelects = [
+          'pastCitySelectA',
+          'pastCitySelectB',
+          'annualCitySelect',
+          'trendCitySelect'
+        ];
+
+        citySelects.forEach(selectId => {
+          const select = document.getElementById(selectId);
+          if (select) {
+            select.innerHTML = ''; // Clear existing options
+            Object.keys(cities).forEach(city => {
+              const option = document.createElement('option');
+              option.value = city;
+              option.textContent = city.charAt(0).toUpperCase() + city.slice(1);
+              select.appendChild(option);
+            });
+          }
+        });
+
+        // Set default selections
+        document.getElementById('pastCitySelectA').value = 'melbourne';
+        document.getElementById('pastCitySelectB').value = 'sydney';
+        document.getElementById('annualCitySelect').value = 'melbourne';
+        document.getElementById('trendCitySelect').value = 'melbourne';
+
+        // Load initial past weather data
+        await loadPastWeatherCompare();
+
+      } catch (error) {
+        console.error('Error initializing page:', error);
+      }
+    });
+
+    function initializeMap() {
     // Initialize map
-    const map = L.map('map').setView([-37.8136, 144.9631], 15);
+      map = L.map('map').setView([-37.8136, 144.9631], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
-    var popup = L.popup();
-    function onMapClick(e){
+      
+      popup = L.popup();
+      
+      // Add click handler
+      map.on('click', onMapClick);
+
+      // Initialize markers for all cities
+      Object.entries(cities).forEach(([city, [lat, lon]]) => {
+        updateCityWeatherIcon(city, lat, lon);
+      });
+    }
+
+    function onMapClick(e) {
       popup
         .setLatLng(e.latlng)
         .setContent("Current location at " + e.latlng.toString())
         .openOn(map);
+} 
+
+    function initializeCharts() {
+      // Initialize forecast chart
+      const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+      forecastChart = new Chart(forecastCtx, {
+        type: 'line',
+        data: { 
+          labels: [], 
+          datasets: [
+            { 
+              label: 'Max Temp',
+              data: [], 
+              borderColor: 'orange',
+              backgroundColor: 'rgba(255, 159, 64, 0.2)',
+              fill: true,
+              tension: 0.4
+            },
+            { 
+              label: 'Min Temp',
+              data: [], 
+              borderColor: 'lightblue',
+              backgroundColor: 'rgba(135, 206, 235, 0.2)',
+              fill: true,
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: '7-Day Temperature Forecast',
+              color: 'white',
+              font: { size: 16 }
+            },
+            legend: {
+              display: true,
+              position: 'top',
+              labels: { 
+                color: 'white',
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const temp = context.raw;
+                  return `${context.dataset.label}: ${useMetric ? temp.toFixed(1) + '°C' : celsiusToFahrenheit(temp).toFixed(1) + '°F'}`;
+                }
+              }
+            },
+            annotation: {
+              annotations: {}
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Date',
+                color: 'white'
+              },
+              ticks: { 
+                color: 'white',
+                callback: function(value, index) {
+                  const date = new Date(this.getLabelForValue(value));
+                  return date.toLocaleDateString('en-AU', { weekday: 'short', month: 'short', day: 'numeric' });
+                }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Temperature',
+                color: 'white'
+              },
+              ticks: { 
+                color: 'white',
+                callback: function(value) {
+                  return useMetric ? value + '°C' : celsiusToFahrenheit(value).toFixed(1) + '°F';
+                }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              }
+            }
+          }
+        }
+      });
+
+      // Initialize temperature comparison chart with click interaction
+      const tempCtx = document.getElementById('tempChart').getContext('2d');
+      tempChart = new Chart(tempCtx, {
+        type: 'line',
+        data: { 
+          labels: [], 
+          datasets: [
+            { 
+              label: 'City A',
+              data: [],
+              borderColor: 'rgb(255, 99, 132)',
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              fill: true,
+              tension: 0.4,
+              pointHitRadius: 10
+            },
+            { 
+              label: 'City B',
+              data: [],
+              borderColor: 'rgb(75, 192, 192)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              fill: true,
+              tension: 0.4,
+              pointHitRadius: 10
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: 'Temperature Comparison',
+              color: 'white',
+              font: { size: 16 }
+            },
+            legend: {
+              display: true,
+              position: 'top',
+              labels: { 
+                color: 'white',
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const temp = context.raw;
+                  return `${context.dataset.label}: ${useMetric ? temp.toFixed(1) + '°C' : celsiusToFahrenheit(temp).toFixed(1) + '°F'}`;
+                }
+              }
+            },
+            annotation: {
+              annotations: {
+                averageLine: {
+                  type: 'line',
+                  yMin: 0,
+                  yMax: 0,
+                  borderColor: 'rgba(255, 255, 255, 0.5)',
+                  borderWidth: 2,
+                  borderDash: [6, 6],
+                  label: {
+                    content: 'Average Temperature',
+                    display: true,
+                    color: 'white',
+                    position: 'start',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    padding: 4
+                  }
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Date',
+                color: 'white'
+              },
+              ticks: { 
+                color: 'white',
+                callback: function(value, index) {
+                  const date = new Date(this.getLabelForValue(value));
+                  return date.toLocaleDateString('en-AU', { day: 'numeric' });
+                }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Temperature',
+                color: 'white'
+              },
+              ticks: { 
+                color: 'white',
+                callback: function(value) {
+                  return useMetric ? value + '°C' : celsiusToFahrenheit(value).toFixed(1) + '°F';
+                }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              }
+            }
+          },
+          onClick: (event, elements) => {
+            if (elements.length > 0) {
+              const element = elements[0];
+              const dataIndex = element.index;
+              const datasetIndex = element.datasetIndex;
+              const value = tempChart.data.datasets[datasetIndex].data[dataIndex];
+              const date = tempChart.data.labels[dataIndex];
+              const dataset = tempChart.data.datasets[datasetIndex];
+
+              // Create unique annotation ID for this point
+              const annotationId = `click-${datasetIndex}-${dataIndex}`;
+
+              // Remove existing annotation for this point if it exists
+              if (tempChart.options.plugins.annotation.annotations[annotationId]) {
+                delete tempChart.options.plugins.annotation.annotations[annotationId];
+              } else {
+                // Add new annotation
+                tempChart.options.plugins.annotation.annotations[annotationId] = {
+                  type: 'label',
+                  xValue: dataIndex,
+                  yValue: value,
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  content: `${dataset.label}\nDate: ${new Date(date).toLocaleDateString('en-AU')}\nTemp: ${useMetric ? value.toFixed(1) + '°C' : celsiusToFahrenheit(value).toFixed(1) + '°F'}`,
+                  color: 'white',
+                  font: { size: 12 },
+                  padding: 6
+                };
+              }
+
+              tempChart.update();
+            }
+          }
+        }
+      });
+
+      // Initialize rainfall chart
+      const rainCtx = document.getElementById('rainChart').getContext('2d');
+      rainChart = new Chart(rainCtx, {
+        type: 'bar',
+        data: { 
+          labels: [], 
+          datasets: [
+            {
+              label: 'City A',
+              data: [],
+              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              borderColor: 'rgb(54, 162, 235)',
+              borderWidth: 1
+            },
+            {
+              label: 'City B',
+              data: [],
+              backgroundColor: 'rgba(75, 192, 192, 0.6)',
+              borderColor: 'rgb(75, 192, 192)',
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: {
+              display: true,
+              text: 'Daily Rainfall Comparison',
+              color: 'white',
+              font: { size: 16 }
+            },
+            legend: {
+              display: true,
+              position: 'top',
+              labels: { 
+                color: 'white',
+                usePointStyle: true,
+                pointStyle: 'rect'
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.raw.toFixed(1)} mm`;
+                },
+                footer: function(tooltipItems) {
+                  const dataIndex = tooltipItems[0].dataIndex;
+                  const datasets = tooltipItems[0].chart.data.datasets;
+                  const total = datasets.reduce((sum, dataset) => sum + (dataset.data[dataIndex] || 0), 0);
+                  return `Total rainfall: ${total.toFixed(1)} mm`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Date',
+                color: 'white'
+              },
+              ticks: { 
+                color: 'white',
+                callback: function(value, index) {
+                  const date = new Date(this.getLabelForValue(value));
+                  return date.toLocaleDateString('en-AU', { day: 'numeric' });
+                }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Rainfall (mm)',
+                color: 'white'
+              },
+              ticks: { color: 'white' },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              }
+            }
+          }
+        }
+      });
+
+      // Initialize Annual Pattern Chart with click interaction
+      const annualPatternCtx = document.getElementById('annualPatternChart').getContext('2d');
+      annualPatternChart = new Chart(annualPatternCtx, {
+        type: 'line',
+        data: {
+          labels: Array.from({length: 12}, (_, i) => new Date(2024, i).toLocaleString('default', { month: 'long' })),
+          datasets: [
+            {
+              label: 'Max Temperature',
+              borderColor: 'rgb(255, 99, 132)',
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              fill: true,
+              tension: 0.4,
+              pointHitRadius: 10
+            },
+            {
+              label: 'Min Temperature',
+              borderColor: 'rgb(54, 162, 235)',
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              fill: true,
+              tension: 0.4,
+              pointHitRadius: 10
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: 'Monthly Temperature Pattern', color: 'white' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const temp = context.raw;
+                  return `${context.dataset.label}: ${useMetric ? temp.toFixed(1) + '°C' : celsiusToFahrenheit(temp).toFixed(1) + '°F'}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Month', color: 'white' },
+              ticks: { color: 'white' }
+            },
+            y: {
+              title: { display: true, text: 'Temperature', color: 'white' },
+              ticks: { color: 'white' }
+            }
+          },
+          onClick: (event, elements) => {
+            if (elements.length > 0) {
+              const element = elements[0];
+              const dataIndex = element.index;
+              const datasetIndex = element.datasetIndex;
+              const value = annualPatternChart.data.datasets[datasetIndex].data[dataIndex];
+              const month = annualPatternChart.data.labels[dataIndex];
+              const dataset = annualPatternChart.data.datasets[datasetIndex];
+
+              // Create unique annotation ID for this point
+              const annotationId = `click-${datasetIndex}-${dataIndex}`;
+
+              // Remove existing annotation for this point if it exists
+              if (annualPatternChart.options.plugins.annotation?.annotations?.[annotationId]) {
+                delete annualPatternChart.options.plugins.annotation.annotations[annotationId];
+              } else {
+                // Initialize annotation plugin if not exists
+                if (!annualPatternChart.options.plugins.annotation) {
+                  annualPatternChart.options.plugins.annotation = { annotations: {} };
+                }
+
+                // Add new annotation
+                annualPatternChart.options.plugins.annotation.annotations[annotationId] = {
+                  type: 'label',
+                  xValue: dataIndex,
+                  yValue: value,
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  content: `${month}\n${dataset.label}: ${useMetric ? value.toFixed(1) + '°C' : celsiusToFahrenheit(value).toFixed(1) + '°F'}`,
+                  color: 'white',
+                  font: { size: 12 },
+                  padding: 6
+                };
+              }
+
+              annualPatternChart.update();
+            }
+          }
+        }
+      });
+
+      // Initialize Extremes Chart
+      const extremesCtx = document.getElementById('extremesChart').getContext('2d');
+      extremesChart = new Chart(extremesCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Summer', 'Autumn', 'Winter', 'Spring'],
+          datasets: [
+            {
+              label: 'Record High',
+              backgroundColor: 'rgba(255, 99, 132, 0.5)',
+              borderColor: 'rgb(255, 99, 132)',
+              borderWidth: 1
+            },
+            {
+              label: 'Record Low',
+              backgroundColor: 'rgba(54, 162, 235, 0.5)',
+              borderColor: 'rgb(54, 162, 235)',
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: 'Seasonal Temperature Extremes', color: 'white' }
+          },
+          scales: {
+            x: { ticks: { color: 'white' } },
+            y: { ticks: { color: 'white' } }
+          }
+        }
+      });
+
+      // Initialize Monthly Rain Chart
+      const monthlyRainCtx = document.getElementById('monthlyRainChart').getContext('2d');
+      monthlyRainChart = new Chart(monthlyRainCtx, {
+        type: 'bar',
+        data: {
+          labels: Array.from({length: 12}, (_, i) => new Date(2024, i).toLocaleString('default', { month: 'short' })),
+          datasets: [{
+            label: 'Average Rainfall',
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgb(54, 162, 235)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: 'Monthly Rainfall Distribution', color: 'white' }
+          },
+          scales: {
+            x: { ticks: { color: 'white' } },
+            y: { ticks: { color: 'white' } }
+          }
+        }
+      });
+
+      // Initialize Trend Chart
+      const trendCtx = document.getElementById('trendChart').getContext('2d');
+      trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'Average Temperature',
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointHitRadius: 10 // Increase hit area for better clicking
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: 'Long-term Temperature Trend', color: 'white' },
+            annotation: {
+              annotations: {
+                trendLine: {
+                  type: 'line',
+                  borderColor: 'white',
+                  borderDash: [5, 5],
+                  label: {
+                    content: 'Trend Line',
+                    display: true,
+                    color: 'white'
+                  }
+                }
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: 'white' } },
+            y: { ticks: { color: 'white' } }
+          },
+          onClick: (event, elements) => {
+            if (elements.length > 0) {
+              const dataIndex = elements[0].index;
+              const dataset = trendChart.data.datasets[0];
+              const value = dataset.data[dataIndex];
+              const year = trendChart.data.labels[dataIndex];
+
+              // Remove existing click annotation if it exists
+              const existingAnnotation = trendChart.options.plugins.annotation.annotations['click'];
+              if (existingAnnotation) {
+                delete trendChart.options.plugins.annotation.annotations['click'];
+              }
+
+              // Add new annotation
+              trendChart.options.plugins.annotation.annotations['click'] = {
+                type: 'label',
+                xValue: dataIndex,
+                yValue: value,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                content: `Year: ${year}\nAverage Temperature: ${value.toFixed(2)}${useMetric ? '°C' : '°F'}`,
+                color: 'white',
+                font: { size: 12 },
+                padding: 6
+              };
+
+              trendChart.update();
+            }
+          }
+        }
+      });
 } 
 
     function locateUser() {
@@ -115,16 +972,33 @@
           (position) => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
-            map.setView([lat, lon], 160);
-            marker.setLatLng([lat, lon]).bindPopup("Your Location").openPopup();
-            loadCurrentWeather('your location', lat, lon);
+            map.setView([lat, lon], 10);
+            
+            // Remove existing user marker if it exists
+            if (currentMarker) {
+              map.removeLayer(currentMarker);
+            }
+            
+            // Create a special marker for user location
+            currentMarker = L.marker([lat, lon], {
+              icon: L.divIcon({
+                html: '📍',
+                className: 'user-location',
+                iconSize: [25, 25],
+                iconAnchor: [12, 24]
+              })
+            })
+              .addTo(map)
+              .bindPopup("Your Location")
+              .openPopup();
+            
+            loadCurrentWeather(lat, lon);
           },
           () => {
             alert("Unable to retrieve your location. Using default city.");
             const [lat, lon] = cities['melbourne'];
             map.setView([lat, lon], 10);
-            marker.setLatLng([lat, lon]).bindPopup("Melbourne").openPopup();
-            loadCurrentWeather('melbourne', lat, lon);
+            loadCurrentWeather(lat, lon);
           }
         );
       } else {
@@ -132,9 +1006,136 @@
       }
     }
     
-    
-    
-    map.on('click', onMapClick);
+    // Update forecast chart function
+    function updateForecastChart(daily) {
+      const maxTemps = daily.temperature_2m_max.map(temp => useMetric ? temp : celsiusToFahrenheit(temp));
+      const minTemps = daily.temperature_2m_min.map(temp => useMetric ? temp : celsiusToFahrenheit(temp));
+      
+      forecastChart.data.labels = daily.time;
+      forecastChart.data.datasets[0].data = maxTemps;
+      forecastChart.data.datasets[1].data = minTemps;
+      forecastChart.options.scales.y.title.text = useMetric ? 'Temperature (°C)' : 'Temperature (°F)';
+
+      // Clear existing annotations
+      forecastChart.options.plugins.annotation.annotations = {};
+
+      // Add temperature labels for each data point
+      maxTemps.forEach((temp, index) => {
+        // Label for max temperature
+        forecastChart.options.plugins.annotation.annotations[`max-${index}`] = {
+          type: 'point',
+          xValue: index,
+          yValue: temp,
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
+          label: {
+            enabled: true,
+            content: useMetric ? `${temp.toFixed(1)}°C` : `${temp.toFixed(1)}°F`,
+            position: 'top',
+            yAdjust: -10,
+            color: 'white',
+            backgroundColor: 'rgba(255, 159, 64, 0.8)'
+          }
+        };
+
+        // Label for min temperature
+        forecastChart.options.plugins.annotation.annotations[`min-${index}`] = {
+          type: 'point',
+          xValue: index,
+          yValue: minTemps[index],
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
+          label: {
+            enabled: true,
+            content: useMetric ? `${minTemps[index].toFixed(1)}°C` : `${minTemps[index].toFixed(1)}°F`,
+            position: 'bottom',
+            yAdjust: 10,
+            color: 'white',
+            backgroundColor: 'rgba(135, 206, 235, 0.8)'
+          }
+        };
+      });
+
+      forecastChart.update('none'); // Use 'none' to prevent animation
+    }
+
+    // Function to update weather icon for a city
+    async function updateCityWeatherIcon(city, lat, lon) {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const weatherCode = data.current_weather.weathercode;
+        const iconUrl = weatherIcons[weatherCode] || weatherIcons[0];
+
+        if (cityMarkers[city]) {
+          map.removeLayer(cityMarkers[city]);
+        }
+
+        cityMarkers[city] = L.marker([lat, lon], {
+          icon: createWeatherIcon(iconUrl, weatherCode)
+        })
+          .addTo(map)
+          .bindPopup(
+            `${city.charAt(0).toUpperCase() + city.slice(1)}<br>` +
+            `Temperature: ${formatTemperature(data.current_weather.temperature)}<br>` +
+            `Wind: ${formatWindSpeed(data.current_weather.windspeed)}`
+          );
+      } catch (error) {
+        console.error(`Error updating weather icon for ${city}:`, error);
+      }
+    }
+
+    // Conversion functions
+    function celsiusToFahrenheit(celsius) {
+      return (celsius * 9/5) + 32;
+    }
+
+    function fahrenheitToCelsius(fahrenheit) {
+      return (fahrenheit - 32) * 5/9;
+    }
+
+    function kmhToMph(kmh) {
+      return kmh * 0.621371;
+    }
+
+    function mphToKmh(mph) {
+      return mph / 0.621371;
+    }
+
+    function formatTemperature(celsius) {
+      if (useMetric) {
+        return `${celsius.toFixed(1)}°C`;
+      }
+      return `${celsiusToFahrenheit(celsius).toFixed(1)}°F`;
+    }
+
+    function formatWindSpeed(kmh) {
+      if (useMetric) {
+        return `${kmh.toFixed(1)} km/h`;
+      }
+      return `${kmhToMph(kmh).toFixed(1)} mph`;
+    }
+
+    function toggleUnits() {
+      useMetric = !useMetric;
+      document.getElementById('unitToggle').textContent = useMetric ? 'Switch to °F/mph' : 'Switch to °C/km/h';
+      
+      // Update all displayed weather data
+      Object.entries(cities).forEach(([city, [lat, lon]]) => {
+        updateCityWeatherIcon(city, lat, lon);
+      });
+      
+      // Update current weather cards if they exist
+      const currentTemp = document.querySelector('[data-weather="temperature"]');
+      const currentWind = document.querySelector('[data-weather="wind"]');
+      if (currentTemp && currentWind) {
+        const tempValue = parseFloat(currentTemp.getAttribute('data-value'));
+        const windValue = parseFloat(currentWind.getAttribute('data-value'));
+        currentTemp.textContent = formatTemperature(tempValue);
+        currentWind.textContent = formatWindSpeed(windValue);
+      }
+    }
 
     function showSection(name) {
       document.getElementById("current").classList.add("hidden");
@@ -147,133 +1148,321 @@
       return directions[Math.round(deg / 45) % 8];
     }
 
-    const cities = {
-      melbourne: [-37.8136, 144.9631],
-      sydney: [-33.8688, 151.2093],
-      brisbane: [-27.4698, 153.0251],
-      perth: [-31.9505, 115.8605]
-    };
-
-    const forecastChart = new Chart(document.getElementById('forecastChart').getContext('2d'), {
-      type: 'line',
-      data: { labels: [], datasets: [
-        { label: 'Max Temp', data: [], borderColor: 'orange', fill: false },
-        { label: 'Min Temp', data: [], borderColor: 'lightblue', fill: false }
-      ]},
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: 'white' } } },
-        scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } }
-      }
-    });
-
-    const tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), {
-      type: 'line',
-      data: { labels: [], datasets: [{ label: 'Max Temp', data: [], borderColor: 'red', fill: false }] },
-      options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } } }
-    });
-
-    const rainChart = new Chart(document.getElementById('rainChart').getContext('2d'), {
-      type: 'bar',
-      data: { labels: [], datasets: [{ label: 'Precipitation', data: [], backgroundColor: 'rgba(54, 162, 235, 0.5)' }] },
-      options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { x: { ticks: { color: 'white' } }, y: { ticks: { color: 'white' } } } }
-    });
-
-
-
-
-
-    // Clear existing markers
-    let currentMarker = null;
     // use BOM to retrieve the most recent data
-    async function loadCurrentWeather(lat, lon) {
+    async function loadCurrentWeather() {
       try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=auto`;
-        const res = await fetch(url);
-        const data = await res.json();
+        // Fetch weather data for all capital cities
+        for (const [city, [lat, lon]] of Object.entries(cities)) {
+          try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&hourly=relativehumidity_2m&timezone=auto`;
+            const res = await fetch(url);
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            const data = await res.json();
 
-        const current = data.current_weather;
-        const daily = data.daily;
+            const current = data.current_weather;
+            const daily = data.daily;
+            // Get current hour's humidity
+            const currentHour = new Date().getHours();
+            const humidity = data.hourly.relativehumidity_2m[currentHour];
 
-        const cards = document.getElementById("cards");
-        cards.innerHTML = '';
-        cards.innerHTML += createCard("Temperature", `${current.temperature} °C`, "🌡️");
-        cards.innerHTML += createCard("Wind", `${current.windspeed} km/h`, "💨");
-        cards.innerHTML += createCard("Direction", windDirection(current.winddirection), "🧭");
-        cards.innerHTML += createCard("Rain", `${daily.precipitation_sum[0]} mm`, "☔");
+            // Create weather cards for each city
+            const cityCards = document.getElementById(`${city}Cards`);
+            if (cityCards) {
+              cityCards.innerHTML = '';
+              
+              // Add temperature card with proper background color
+              const tempClass = getTemperatureClass(current.temperature);
+              cityCards.innerHTML += `
+                <div class="p-2 rounded-lg shadow-md ${tempClass}">
+                  <h3 class="text-sm font-semibold mb-1">Temperature</h3>
+                  <p class="text-lg font-bold" data-weather="temperature" data-value="${current.temperature}">
+                    ${formatTemperature(current.temperature)} ${getTemperatureIcon(current.temperature)}
+                  </p>
+                </div>`;
 
-        forecastChart.data.labels = daily.time;
-        forecastChart.data.datasets[0].data = daily.temperature_2m_max;
-        forecastChart.data.datasets[1].data = daily.temperature_2m_min;
-        forecastChart.update();
+              // Add wind card
+              const windClass = getWindClass(current.windspeed);
+              cityCards.innerHTML += `
+                <div class="p-2 rounded-lg shadow-md ${windClass}">
+                  <h3 class="text-sm font-semibold mb-1">Wind</h3>
+                  <p class="text-lg font-bold" data-weather="wind" data-value="${current.windspeed}">
+                    ${formatWindSpeed(current.windspeed)} ${getWindIcon(current.windspeed)}
+                  </p>
+                </div>`;
+
+              // Add rain card
+              const rainValue = daily.precipitation_sum[0];
+              const rainClass = getRainClass(rainValue);
+              cityCards.innerHTML += `
+                <div class="p-2 rounded-lg shadow-md ${rainClass}">
+                  <h3 class="text-sm font-semibold mb-1">Rain</h3>
+                  <p class="text-lg font-bold" data-weather="rain" data-value="${rainValue}">
+                    ${rainValue.toFixed(1)} mm ${getRainIcon(rainValue)}
+                  </p>
+                </div>`;
+
+              // Add humidity card
+              const humidityClass = getHumidityClass(humidity);
+              cityCards.innerHTML += `
+                <div class="p-2 rounded-lg shadow-md ${humidityClass}">
+                  <h3 class="text-sm font-semibold mb-1">Humidity</h3>
+                  <p class="text-lg font-bold" data-weather="humidity" data-value="${humidity}">
+                    ${humidity}% ${getHumidityIcon(humidity)}
+                  </p>
+                </div>`;
+            }
+
+            // Update forecast chart for Melbourne
+            if (city === 'melbourne') {
+              updateForecastChart(daily);
+            }
+          } catch (cityError) {
+            console.error(`Error loading weather for ${city}:`, cityError);
+            // Display error message in the city card
+            const cityCards = document.getElementById(`${city}Cards`);
+            if (cityCards) {
+              cityCards.innerHTML = `
+                <div class="p-2 rounded-lg shadow-md bg-red-600">
+                  <p class="text-sm">Unable to load weather data</p>
+                </div>`;
+            }
+          }
+        }
       } catch (error) {
-        console.error("Error loading current weather:", error);
+        console.error("Error in loadCurrentWeather:", error);
       }
     }
 
-    async function loadPastWeatherCompare(cityA, cityB, year, month) {
-  const start = `${year}-${month}-01`;
-  const end = `${year}-${month}-${new Date(year, month, 0).getDate()}`;
-
-  const [latA, lonA] = cities[cityA];
-  const [latB, lonB] = cities[cityB];
-
-  const urlA = `https://archive-api.open-meteo.com/v1/archive?latitude=${latA}&longitude=${lonA}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,precipitation_sum&timezone=auto`;
-  const urlB = `https://archive-api.open-meteo.com/v1/archive?latitude=${latB}&longitude=${lonB}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,precipitation_sum&timezone=auto`;
-
-  const [resA, resB] = await Promise.all([fetch(urlA), fetch(urlB)]);
-  const dataA = await resA.json();
-  const dataB = await resB.json();
-
-  // 更新温度图
-  tempChart.data.labels = dataA.daily.time;
-  tempChart.data.datasets = [
-    {
-      label: `Max Temp (${cityA})`,
-      data: dataA.daily.temperature_2m_max,
-      borderColor: 'red',
-      fill: false,
-    },
-    {
-      label: `Max Temp (${cityB})`,
-      data: dataB.daily.temperature_2m_max,
-      borderColor: 'lightblue',
-      fill: false,
+    // Helper functions for weather classes and icons
+    function getTemperatureClass(temp) {
+      if (temp < 0) return 'bg-blue-900';
+      if (temp < 15) return 'bg-blue-700';
+      if (temp < 20) return 'bg-blue-500';
+      if (temp < 30) return 'bg-yellow-500';
+      if (temp < 40) return 'bg-orange-500';
+      return 'bg-red-600';
     }
-  ];
-  tempChart.update();
 
-  // 更新降雨图，只用城市 A 的数据（或可扩展）
-  rainChart.data.labels = dataA.daily.time;
-  rainChart.data.datasets = [
-    {
-      label: `Rain (${cityA})`,
-      data: dataA.daily.precipitation_sum,
-      backgroundColor: 'rgba(54, 162, 235, 0.6)',
-    },
-    {
-      label: `Rain (${cityB})`,
-      data: dataB.daily.precipitation_sum,
-      backgroundColor: 'rgba(0, 255, 127, 0.5)', // spring green 🌱
+    function getTemperatureIcon(temp) {
+      if (temp < 0) return '❄️';
+      if (temp < 15) return '🥶';
+      if (temp < 20) return '😊';
+      if (temp < 30) return '😎';
+      if (temp < 40) return '🥵';
+      return '🔥';
     }
-  ];
-  rainChart.update();
-}
 
+    function getWindClass(speed) {
+      if (speed < 5) return 'bg-green-500';
+      if (speed < 15) return 'bg-yellow-500';
+      if (speed < 30) return 'bg-orange-500';
+      return 'bg-red-600';
+    }
 
-function updatePastWeather() {
-  const cityA = document.getElementById("pastCitySelectA").value;
-  const cityB = document.getElementById("pastCitySelectB").value;
-  const year = document.getElementById("yearSelect").value;
-  const month = document.getElementById("monthSelect").value;
-  loadPastWeatherCompare(cityA, cityB, year, month);
-}
+    function getWindIcon(speed) {
+      if (speed < 5) return '🍃';
+      if (speed < 15) return '💨';
+      if (speed < 30) return '🌬️';
+      return '🌪️';
+    }
 
-    function createCard(title, value, icon = '') {
-      return `<div class="bg-gray-800 p-4 rounded-lg shadow-md">
-        <h2 class="text-md font-semibold mb-2">${title}</h2>
-        <p class="text-2xl font-bold">${value} ${icon}</p>
+    function getRainClass(rain) {
+      if (rain === 0) return 'bg-blue-500';
+      if (rain < 5) return 'bg-blue-400';
+      if (rain < 20) return 'bg-blue-600';
+      return 'bg-blue-800';
+    }
+
+    function getRainIcon(rain) {
+      if (rain === 0) return '☀️';
+      if (rain < 5) return '🌦️';
+      if (rain < 20) return '🌧️';
+      return '⛈️';
+    }
+
+    function getHumidityClass(humidity) {
+      if (humidity < 30) return 'bg-yellow-500';
+      if (humidity < 50) return 'bg-green-500';
+      if (humidity < 70) return 'bg-blue-500';
+      return 'bg-blue-700';
+    }
+
+    function getHumidityIcon(humidity) {
+      if (humidity < 30) return '🏜️';
+      if (humidity < 50) return '🌤️';
+      if (humidity < 70) return '💧';
+      return '💦';
+    }
+
+    async function loadPastWeatherCompare() {
+      try {
+        const cityA = document.getElementById('pastCitySelectA').value;
+        const cityB = document.getElementById('pastCitySelectB').value;
+        const selectedYear = document.getElementById('yearSelect').value;
+        const selectedMonth = document.getElementById('monthSelect').value;
+
+        // Fetch data for both cities if not already cached
+        if (!weatherData[cityA] || !weatherData[cityB]) {
+          await fetchLocalWeatherData([cityA, cityB]);
+        }
+
+        // Filter data for selected year and month
+        const filterData = (cityData, year, month) => {
+          return cityData.filter(record => {
+            const date = new Date(record.date);
+            return date.getFullYear() === parseInt(year) && 
+                   date.getMonth() === parseInt(month) - 1;
+          });
+        };
+
+        const cityAData = filterData(weatherData[cityA], selectedYear, selectedMonth);
+        const cityBData = filterData(weatherData[cityB], selectedYear, selectedMonth);
+
+        // Update temperature comparison chart
+        const tempData = {
+          labels: cityAData.map(d => new Date(d.date).getDate()),
+          datasets: [
+            {
+              label: cityA,
+              data: cityAData.map(d => d.temperature_2m_mean),
+              borderColor: 'rgb(255, 99, 132)',
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              fill: true
+            },
+            {
+              label: cityB,
+              data: cityBData.map(d => d.temperature_2m_mean),
+              borderColor: 'rgb(75, 192, 192)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              fill: true
+            }
+          ]
+        };
+
+        tempChart.data = tempData;
+        tempChart.update();
+
+        // Update rainfall comparison chart
+        const rainData = {
+          labels: cityAData.map(d => new Date(d.date).getDate()),
+          datasets: [
+            {
+              label: cityA,
+              data: cityAData.map(d => d.precipitation_sum),
+              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              borderColor: 'rgb(54, 162, 235)',
+              borderWidth: 1
+            },
+            {
+              label: cityB,
+              data: cityBData.map(d => d.precipitation_sum),
+              backgroundColor: 'rgba(75, 192, 192, 0.6)',
+              borderColor: 'rgb(75, 192, 192)',
+              borderWidth: 1
+            }
+          ]
+        };
+
+        rainChart.data = rainData;
+        rainChart.update();
+
+      } catch (error) {
+        console.error('Error updating past weather comparison:', error);
+      }
+    }
+
+    function createCard(title, value, icon = '', type = '') {
+      let displayValue = value;
+      let originalValue = '';
+      let levelClass = '';
+      let levelIcon = icon;
+      
+      if (type === 'temperature') {
+        originalValue = parseFloat(value);
+        displayValue = formatTemperature(originalValue);
+        
+        // Temperature levels and icons
+        if (originalValue < 0) {
+          levelClass = 'bg-blue-900';
+          levelIcon = '❄️';
+        } else if (originalValue < 15) {
+          levelClass = 'bg-blue-700';
+          levelIcon = '🥶';
+        } else if (originalValue < 20) {
+          levelClass = 'bg-blue-500';
+          levelIcon = '😊';
+        } else if (originalValue < 30) {
+          levelClass = 'bg-yellow-500';
+          levelIcon = '😎';
+        } else if (originalValue < 40) {
+          levelClass = 'bg-orange-500';
+          levelIcon = '🥵';
+        } else {
+          levelClass = 'bg-red-600';
+          levelIcon = '🔥';
+        }
+      } else if (type === 'wind') {
+        originalValue = parseFloat(value);
+        displayValue = formatWindSpeed(originalValue);
+        
+        // Wind speed levels and icons
+        if (originalValue < 5) {
+          levelClass = 'bg-green-500';
+          levelIcon = '🍃';
+        } else if (originalValue < 15) {
+          levelClass = 'bg-yellow-500';
+          levelIcon = '💨';
+        } else if (originalValue < 30) {
+          levelClass = 'bg-orange-500';
+          levelIcon = '🌬️';
+        } else {
+          levelClass = 'bg-red-600';
+          levelIcon = '🌪️';
+        }
+      } else if (type === 'rain') {
+        // Extract numeric value from string like "1.9 mm"
+        originalValue = parseFloat(value.split(' ')[0]);
+        displayValue = `${originalValue.toFixed(1)} mm`;
+        
+        // Rainfall levels and icons
+        if (originalValue === 0) {
+          levelClass = 'bg-blue-500';
+          levelIcon = '☀️';
+        } else if (originalValue < 5) {
+          levelClass = 'bg-blue-400';
+          levelIcon = '🌦️';
+        } else if (originalValue < 20) {
+          levelClass = 'bg-blue-600';
+          levelIcon = '🌧️';
+        } else {
+          levelClass = 'bg-blue-800';
+          levelIcon = '⛈️';
+        }
+      } else if (type === 'humidity') {
+        originalValue = parseFloat(value);
+        displayValue = `${originalValue}%`;
+        
+        // Humidity levels and icons
+        if (originalValue < 30) {
+          levelClass = 'bg-yellow-500';
+          levelIcon = '🏜️';
+        } else if (originalValue < 50) {
+          levelClass = 'bg-green-500';
+          levelIcon = '🌤️';
+        } else if (originalValue < 70) {
+          levelClass = 'bg-blue-500';
+          levelIcon = '💧';
+        } else {
+          levelClass = 'bg-blue-700';
+          levelIcon = '💦';
+        }
+      }
+
+      return `<div class="p-2 rounded-lg shadow-md ${levelClass}">
+        <h3 class="text-sm font-semibold mb-1">${title}</h3>
+        <p class="text-lg font-bold" data-weather="${type}" data-value="${originalValue}">${displayValue} ${levelIcon}</p>
       </div>`;
     }
 
@@ -298,12 +1487,10 @@ function updatePastWeather() {
     });
 
     // Add event listeners to automatically apply past weather selection
-    document.getElementById("pastCitySelectA").addEventListener("change", updatePastWeather);
-    document.getElementById("pastCitySelectB").addEventListener("change", updatePastWeather);
-    document.getElementById("yearSelect").addEventListener("change", updatePastWeather);
-    document.getElementById("monthSelect").addEventListener("change", updatePastWeather);
-
- 
+    document.getElementById("pastCitySelectA").addEventListener("change", loadPastWeatherCompare);
+    document.getElementById("pastCitySelectB").addEventListener("change", loadPastWeatherCompare);
+    document.getElementById("yearSelect").addEventListener("change", loadPastWeatherCompare);
+    document.getElementById("monthSelect").addEventListener("change", loadPastWeatherCompare);
 
     const now = new Date().getFullYear();
     const yearSel = document.getElementById("yearSelect");
@@ -316,7 +1503,213 @@ function updatePastWeather() {
 
     // Initial load for Melbourne and past weather
     loadCurrentWeather(...cities['melbourne']);
-    updatePastWeather();
+    loadPastWeatherCompare();
+
+    // Add new update functions for the charts
+    async function updateAnnualPattern() {
+      try {
+        const selectedCity = document.getElementById('annualCitySelect').value;
+        const selectedYear = document.getElementById('annualYearSelect').value;
+
+        // Fetch data if not already cached
+        if (!weatherData[selectedCity]) {
+          await fetchLocalWeatherData([selectedCity]);
+        }
+
+        // Filter data for selected year
+        const yearData = weatherData[selectedCity].filter(record => 
+          new Date(record.date).getFullYear() === parseInt(selectedYear)
+        );
+
+        // Group data by month
+        const monthlyData = Array(12).fill(null).map(() => ({ max: [], min: [] }));
+        yearData.forEach(record => {
+          const month = new Date(record.date).getMonth();
+          monthlyData[month].max.push(record.temperature_2m_max);
+          monthlyData[month].min.push(record.temperature_2m_min);
+        });
+
+        // Calculate monthly averages
+        const monthlyAverages = monthlyData.map(month => ({
+          max: month.max.reduce((a, b) => a + b, 0) / month.max.length || null,
+          min: month.min.reduce((a, b) => a + b, 0) / month.min.length || null
+        }));
+
+        // Update chart
+        annualPatternChart.data.datasets[0].data = monthlyAverages.map(m => m.max);
+        annualPatternChart.data.datasets[1].data = monthlyAverages.map(m => m.min);
+        annualPatternChart.update();
+
+      } catch (error) {
+        console.error('Error updating annual pattern:', error);
+      }
+    }
+
+    async function updateTrendAnalysis() {
+      const city = document.getElementById('trendCitySelect').value;
+      const startYear = document.getElementById('trendStartYear').value;
+      const endYear = document.getElementById('trendEndYear').value;
+      const [lat, lon] = cities[city];
+
+      try {
+        const currentYear = new Date().getFullYear();
+        const isEndYearCurrent = parseInt(endYear) === currentYear;
+        
+        let url;
+        if (isEndYearCurrent) {
+          // For current year, use forecast API
+          url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+        } else {
+          url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startYear}-01-01&end_date=${endYear}-12-31&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+        }
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        // Process data into yearly averages
+        const yearlyData = {};
+        data.daily.time.forEach((date, index) => {
+          const year = new Date(date).getFullYear();
+          if (!yearlyData[year]) {
+            yearlyData[year] = { max: [], min: [] };
+          }
+          yearlyData[year].max.push(data.daily.temperature_2m_max[index]);
+          yearlyData[year].min.push(data.daily.temperature_2m_min[index]);
+        });
+
+        // Calculate yearly averages
+        const years = Object.keys(yearlyData).sort();
+        const yearlyAverages = years.map(year => {
+          const yearData = yearlyData[year];
+          return {
+            year: parseInt(year),
+            avg: (yearData.max.reduce((a, b) => a + b, 0) / yearData.max.length + 
+                  yearData.min.reduce((a, b) => a + b, 0) / yearData.min.length) / 2
+          };
+        });
+
+        // Calculate trend line
+        const n = yearlyAverages.length;
+        const sumX = yearlyAverages.reduce((sum, point) => sum + point.year, 0);
+        const sumY = yearlyAverages.reduce((sum, point) => sum + point.avg, 0);
+        const sumXY = yearlyAverages.reduce((sum, point) => sum + point.year * point.avg, 0);
+        const sumXX = yearlyAverages.reduce((sum, point) => sum + point.year * point.year, 0);
+        
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+
+        // Update chart
+        trendChart.data.labels = years;
+        trendChart.data.datasets[0].data = yearlyAverages.map(point => 
+          useMetric ? point.avg : celsiusToFahrenheit(point.avg)
+        );
+
+        // Update trend line annotation
+        const firstYear = parseInt(years[0]);
+        const lastYear = parseInt(years[years.length - 1]);
+        trendChart.options.plugins.annotation.annotations.trendLine.yMin = 
+          useMetric ? (slope * firstYear + intercept) : celsiusToFahrenheit(slope * firstYear + intercept);
+        trendChart.options.plugins.annotation.annotations.trendLine.yMax = 
+          useMetric ? (slope * lastYear + intercept) : celsiusToFahrenheit(slope * lastYear + intercept);
+
+        // Add note for current year
+        if (isEndYearCurrent) {
+          trendChart.options.plugins.title.text = 'Temperature Trend Analysis (Including Current Year Forecast)';
+        } else {
+          trendChart.options.plugins.title.text = 'Temperature Trend Analysis';
+        }
+
+        trendChart.update();
+      } catch (error) {
+        console.error('Error updating trend analysis:', error);
+      }
+    }
+
+    async function updateExtremesAndRainfall() {
+      const city = document.getElementById('annualCitySelect').value;
+      const year = document.getElementById('annualYearSelect').value;
+      const [lat, lon] = cities[city];
+
+      try {
+        const currentYear = new Date().getFullYear();
+        const isCurrentYear = parseInt(year) === currentYear;
+        
+        let url;
+        if (isCurrentYear) {
+          url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
+        } else {
+          url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${year}-01-01&end_date=${year}-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
+        }
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        // Process data for seasonal extremes
+        const seasonalData = {
+          Summer: { max: [], min: [] },
+          Autumn: { max: [], min: [] },
+          Winter: { max: [], min: [] },
+          Spring: { max: [], min: [] }
+        };
+
+        data.daily.time.forEach((date, index) => {
+          const month = new Date(date).getMonth();
+          let season;
+          if (month >= 11 || month <= 1) season = 'Summer';
+          else if (month >= 2 && month <= 4) season = 'Autumn';
+          else if (month >= 5 && month <= 7) season = 'Winter';
+          else season = 'Spring';
+
+          seasonalData[season].max.push(data.daily.temperature_2m_max[index]);
+          seasonalData[season].min.push(data.daily.temperature_2m_min[index]);
+        });
+
+        // Calculate seasonal extremes
+        const extremes = Object.entries(seasonalData).map(([season, data]) => ({
+          season,
+          max: data.max.length > 0 ? Math.max(...data.max) : null,
+          min: data.min.length > 0 ? Math.min(...data.min) : null
+        }));
+
+        // Update extremes chart
+        extremesChart.data.datasets[0].data = extremes.map(e => 
+          e.max !== null ? (useMetric ? e.max : celsiusToFahrenheit(e.max)) : null
+        );
+        extremesChart.data.datasets[1].data = extremes.map(e => 
+          e.min !== null ? (useMetric ? e.min : celsiusToFahrenheit(e.min)) : null
+        );
+
+        // Add note for current year
+        if (isCurrentYear) {
+          extremesChart.options.plugins.title.text = 'Seasonal Temperature Extremes (Current Year - Forecast)';
+        } else {
+          extremesChart.options.plugins.title.text = 'Seasonal Temperature Extremes';
+        }
+
+        extremesChart.update();
+
+        // Process monthly rainfall data
+        const monthlyRain = Array(12).fill(0);
+        data.daily.time.forEach((date, index) => {
+          const month = new Date(date).getMonth();
+          monthlyRain[month] += data.daily.precipitation_sum[index];
+        });
+
+        // Update rainfall chart
+        monthlyRainChart.data.datasets[0].data = monthlyRain;
+        
+        // Add note for current year
+        if (isCurrentYear) {
+          monthlyRainChart.options.plugins.title.text = 'Monthly Rainfall Distribution (Current Year - Forecast)';
+        } else {
+          monthlyRainChart.options.plugins.title.text = 'Monthly Rainfall Distribution';
+        }
+
+        monthlyRainChart.update();
+      } catch (error) {
+        console.error('Error updating extremes and rainfall:', error);
+      }
+    }
   </script>
 </body>
 </html>
