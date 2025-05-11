@@ -87,6 +87,29 @@
           </div>
         </div>
 
+        <div class="flex justify-center gap-4 mb-4">
+          <select id="forecastCityA" class="bg-gray-800 text-white px-4 py-2 rounded">
+            <option value="melbourne">Melbourne</option>
+            <option value="sydney">Sydney</option>
+            <option value="brisbane">Brisbane</option>
+            <option value="perth">Perth</option>
+            <option value="adelaide">Adelaide</option>
+            <option value="hobart">Hobart</option>
+            <option value="darwin">Darwin</option>
+            <option value="canberra">Canberra</option>
+          </select>
+          <select id="forecastCityB" class="bg-gray-800 text-white px-4 py-2 rounded">
+            <option value="sydney">Sydney</option>
+            <option value="melbourne">Melbourne</option>
+            <option value="brisbane">Brisbane</option>
+            <option value="perth">Perth</option>
+            <option value="adelaide">Adelaide</option>
+            <option value="hobart">Hobart</option>
+            <option value="darwin">Darwin</option>
+            <option value="canberra">Canberra</option>
+          </select>
+        </div>        
+
         <h2 class="text-2xl font-semibold mb-4 text-center">Next 7 Days Forecast</h2>
         <div class="bg-gray-800 p-6 rounded-lg max-h">
           <canvas id="forecastChart" class="w-full h-80"></canvas>
@@ -337,7 +360,7 @@
           annualYearSelect.appendChild(opt3);
         }
 
-        // Set default selections
+        // Set default selection
         trendStartYear.value = currentYear - 19;
         trendEndYear.value = currentYear;
         annualYearSelect.value = currentYear;
@@ -389,6 +412,11 @@
 
         // Load initial past weather data
         await loadPastWeatherCompare();
+
+        // Forecast city dropdown event listeners
+        document.getElementById('forecastCityA').addEventListener('change', updateForecastComparison);
+        document.getElementById('forecastCityB').addEventListener('change', updateForecastComparison);
+        updateForecastComparison(); // Initial chart render
 
       } catch (error) {
         console.error('Error initializing page:', error);
@@ -1007,56 +1035,45 @@
     }
     
     // Update forecast chart function
-    function updateForecastChart(daily) {
-      const maxTemps = daily.temperature_2m_max.map(temp => useMetric ? temp : celsiusToFahrenheit(temp));
-      const minTemps = daily.temperature_2m_min.map(temp => useMetric ? temp : celsiusToFahrenheit(temp));
-      
-      forecastChart.data.labels = daily.time;
-      forecastChart.data.datasets[0].data = maxTemps;
-      forecastChart.data.datasets[1].data = minTemps;
-      forecastChart.options.scales.y.title.text = useMetric ? 'Temperature (°C)' : 'Temperature (°F)';
+    function updateForecastChart(cityA, dataA, cityB, dataB) {
+      forecastChart.data.labels = dataA.time;
 
-      // Clear existing annotations
-      forecastChart.options.plugins.annotation.annotations = {};
+      forecastChart.data.datasets = [
+        {
+          label: `${cityA} Max Temp`,
+          data: dataA.temperature_2m_max,
+          borderColor: 'red',
+          backgroundColor: 'rgba(255, 0, 0, 0.2)',
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: `${cityA} Min Temp`,
+          data: dataA.temperature_2m_min,
+          borderColor: 'blue',
+          backgroundColor: 'rgba(0, 0, 255, 0.2)',
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: `${cityB} Max Temp`,
+          data: dataB.temperature_2m_max,
+          borderColor: 'orange',
+          backgroundColor: 'rgba(255, 165, 0, 0.2)',
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: `${cityB} Min Temp`,
+          data: dataB.temperature_2m_min,
+          borderColor: 'white',
+          backgroundColor: 'rgba(255, 255, 255, 0.2)',
+          fill: true,
+          tension: 0.4
+        }
+      ];
 
-      // Add temperature labels for each data point
-      maxTemps.forEach((temp, index) => {
-        // Label for max temperature
-        forecastChart.options.plugins.annotation.annotations[`max-${index}`] = {
-          type: 'point',
-          xValue: index,
-          yValue: temp,
-          backgroundColor: 'transparent',
-          borderColor: 'transparent',
-          label: {
-            enabled: true,
-            content: useMetric ? `${temp.toFixed(1)}°C` : `${temp.toFixed(1)}°F`,
-            position: 'top',
-            yAdjust: -10,
-            color: 'white',
-            backgroundColor: 'rgba(255, 159, 64, 0.8)'
-          }
-        };
-
-        // Label for min temperature
-        forecastChart.options.plugins.annotation.annotations[`min-${index}`] = {
-          type: 'point',
-          xValue: index,
-          yValue: minTemps[index],
-          backgroundColor: 'transparent',
-          borderColor: 'transparent',
-          label: {
-            enabled: true,
-            content: useMetric ? `${minTemps[index].toFixed(1)}°C` : `${minTemps[index].toFixed(1)}°F`,
-            position: 'bottom',
-            yAdjust: 10,
-            color: 'white',
-            backgroundColor: 'rgba(135, 206, 235, 0.8)'
-          }
-        };
-      });
-
-      forecastChart.update('none'); // Use 'none' to prevent animation
+      forecastChart.update();
     }
 
     // Function to update weather icon for a city
@@ -1214,10 +1231,6 @@
                 </div>`;
             }
 
-            // Update forecast chart for Melbourne
-            if (city === 'melbourne') {
-              updateForecastChart(daily);
-            }
           } catch (cityError) {
             console.error(`Error loading weather for ${city}:`, cityError);
             // Display error message in the city card
@@ -1232,6 +1245,30 @@
         }
       } catch (error) {
         console.error("Error in loadCurrentWeather:", error);
+      }
+    }
+
+    async function updateForecastComparison() {
+      const cityA = document.getElementById('forecastCityA').value;
+      const cityB = document.getElementById('forecastCityB').value;
+
+      const [latA, lonA] = cities[cityA];
+      const [latB, lonB] = cities[cityB];
+
+      try {
+        const [dataA, dataB] = await Promise.all([
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latA}&longitude=${lonA}&daily=temperature_2m_max,temperature_2m_min&timezone=auto`).then(res => res.json()),
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latB}&longitude=${lonB}&daily=temperature_2m_max,temperature_2m_min&timezone=auto`).then(res => res.json())
+        ]);
+
+        updateForecastChart(
+          cityA.charAt(0).toUpperCase() + cityA.slice(1),
+          dataA.daily,
+          cityB.charAt(0).toUpperCase() + cityB.slice(1),
+          dataB.daily
+        );
+      } catch (error) {
+        console.error('Error fetching forecast comparison:', error);
       }
     }
 
