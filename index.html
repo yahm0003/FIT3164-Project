@@ -1107,50 +1107,62 @@
     }
 
     async function loadPastWeatherCompare(cityA, cityB, year, month) {
-  const start = `${year}-${month}-01`;
-  const end = `${year}-${month}-${new Date(year, month, 0).getDate()}`;
+      const start = `${year}-${month}-01`;
+      const end = `${year}-${month}-${new Date(year, month, 0).getDate()}`;
 
-  const [latA, lonA] = cities[cityA];
-  const [latB, lonB] = cities[cityB];
+      try {
+        // Capitalize city names for the API call
+        const response = await fetch(`http://127.0.0.1:5000/weather/raw?city=${cityA.charAt(0).toUpperCase() + cityA.slice(1)}&city=${cityB.charAt(0).toUpperCase() + cityB.slice(1)}`);
+        const data = await response.json();
 
-  const urlA = `https://archive-api.open-meteo.com/v1/archive?latitude=${latA}&longitude=${lonA}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,precipitation_sum&timezone=auto`;
-  const urlB = `https://archive-api.open-meteo.com/v1/archive?latitude=${latB}&longitude=${lonB}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,precipitation_sum&timezone=auto`;
+        console.log("API Response:", data); // Debugging log
 
-  const [resA, resB] = await Promise.all([fetch(urlA), fetch(urlB)]);
-  const dataA = await resA.json();
-  const dataB = await resB.json();
+        // Capitalize city names for accessing the data object
+        const cityAKey = cityA.charAt(0).toUpperCase() + cityA.slice(1);
+        const cityBKey = cityB.charAt(0).toUpperCase() + cityB.slice(1);
 
-      // Update temperature chart
-  tempChart.data.labels = dataA.daily.time;
-      tempChart.data.datasets[0].label = cityA.charAt(0).toUpperCase() + cityA.slice(1);
-      tempChart.data.datasets[1].label = cityB.charAt(0).toUpperCase() + cityB.slice(1);
-      tempChart.data.datasets[0].data = dataA.daily.temperature_2m_max;
-      tempChart.data.datasets[1].data = dataB.daily.temperature_2m_max;
+        // Check if data exists for the cities
+        if (!data[cityAKey] || !data[cityBKey]) {
+          console.error("No data available for the selected cities.");
+          return;
+        }
 
-      // Calculate and update average line
-      const allTemps = [...dataA.daily.temperature_2m_max, ...dataB.daily.temperature_2m_max];
-      const avgTemp = allTemps.reduce((a, b) => a + b, 0) / allTemps.length;
-      tempChart.options.plugins.annotation.annotations.averageLine.yMin = avgTemp;
-      tempChart.options.plugins.annotation.annotations.averageLine.yMax = avgTemp;
+        // Filter data for the selected month
+        const cityAData = data[cityAKey].filter(record => record.date >= start && record.date <= end);
+        const cityBData = data[cityBKey].filter(record => record.date >= start && record.date <= end);
 
-  tempChart.update();
+        console.log("City A Data:", cityAData); // Debugging log
+        console.log("City B Data:", cityBData); // Debugging log
 
-      // Update rainfall chart
-  rainChart.data.labels = dataA.daily.time;
-      rainChart.data.datasets[0].label = cityA.charAt(0).toUpperCase() + cityA.slice(1);
-      rainChart.data.datasets[1].label = cityB.charAt(0).toUpperCase() + cityB.slice(1);
-      rainChart.data.datasets[0].data = dataA.daily.precipitation_sum;
-      rainChart.data.datasets[1].data = dataB.daily.precipitation_sum;
-  rainChart.update();
-}
+        // Update temperature chart
+        tempChart.data.labels = cityAData.map(record => record.date);
+        tempChart.data.datasets[0].label = cityAKey;
+        tempChart.data.datasets[1].label = cityBKey;
+        tempChart.data.datasets[0].data = cityAData.map(record => record.temperature_2m_max);
+        tempChart.data.datasets[1].data = cityBData.map(record => record.temperature_2m_max);
 
-function updatePastWeather() {
-  const cityA = document.getElementById("pastCitySelectA").value;
-  const cityB = document.getElementById("pastCitySelectB").value;
-  const year = document.getElementById("yearSelect").value;
-  const month = document.getElementById("monthSelect").value;
-  loadPastWeatherCompare(cityA, cityB, year, month);
-}
+        tempChart.update();
+
+        // Update rainfall chart
+        rainChart.data.labels = cityAData.map(record => record.date);
+        rainChart.data.datasets[0].label = cityAKey;
+        rainChart.data.datasets[1].label = cityBKey;
+        rainChart.data.datasets[0].data = cityAData.map(record => record.precipitation_sum);
+        rainChart.data.datasets[1].data = cityBData.map(record => record.precipitation_sum);
+
+        rainChart.update();
+      } catch (error) {
+        console.error("Error loading past weather data:", error);
+      }
+    }
+
+    function updatePastWeather() {
+      const cityA = document.getElementById("pastCitySelectA").value;
+      const cityB = document.getElementById("pastCitySelectB").value;
+      const year = document.getElementById("yearSelect").value;
+      const month = document.getElementById("monthSelect").value;
+      loadPastWeatherCompare(cityA, cityB, year, month);
+    }
 
     function createCard(title, value, icon = '', type = '') {
       let displayValue = value;
@@ -1213,30 +1225,21 @@ function updatePastWeather() {
     async function updateAnnualPattern() {
       const city = document.getElementById('annualCitySelect').value;
       const year = document.getElementById('annualYearSelect').value;
-      const [lat, lon] = cities[city];
 
       try {
-        // For current year, use forecast API instead of archive
-        const currentYear = new Date().getFullYear();
-        const isCurrentYear = parseInt(year) === currentYear;
-        
-        let url;
-        if (isCurrentYear) {
-          url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
-        } else {
-          url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${year}-01-01&end_date=${year}-12-31&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
-        }
-
-        const response = await fetch(url);
+        // Fetch data from the backend
+        const response = await fetch(`http://127.0.0.1:5000/weather/raw?city=${city.charAt(0).toUpperCase() + city.slice(1)}`);
         const data = await response.json();
+
+        const cityKey = city.charAt(0).toUpperCase() + city.slice(1);
+        const cityData = data[cityKey].filter(record => record.date.startsWith(year));
 
         // Process data into monthly averages
         const monthlyData = Array(12).fill().map(() => ({ max: [], min: [] }));
-        
-        data.daily.time.forEach((date, index) => {
-          const month = new Date(date).getMonth();
-          monthlyData[month].max.push(data.daily.temperature_2m_max[index]);
-          monthlyData[month].min.push(data.daily.temperature_2m_min[index]);
+        cityData.forEach(record => {
+          const month = new Date(record.date).getMonth();
+          monthlyData[month].max.push(record.temperature_2m_max);
+          monthlyData[month].min.push(record.temperature_2m_min);
         });
 
         // Calculate monthly averages
@@ -1246,19 +1249,12 @@ function updatePastWeather() {
         }));
 
         // Update chart
-        annualPatternChart.data.datasets[0].data = monthlyAverages.map(m => 
+        annualPatternChart.data.datasets[0].data = monthlyAverages.map(m =>
           m.max !== null ? (useMetric ? m.max : celsiusToFahrenheit(m.max)) : null
         );
-        annualPatternChart.data.datasets[1].data = monthlyAverages.map(m => 
+        annualPatternChart.data.datasets[1].data = monthlyAverages.map(m =>
           m.min !== null ? (useMetric ? m.min : celsiusToFahrenheit(m.min)) : null
         );
-
-        // Add note for current year
-        if (isCurrentYear) {
-          annualPatternChart.options.plugins.title.text = 'Monthly Temperature Pattern (Current Year - Forecast)';
-        } else {
-          annualPatternChart.options.plugins.title.text = 'Monthly Temperature Pattern';
-        }
 
         annualPatternChart.update();
       } catch (error) {
@@ -1270,75 +1266,44 @@ function updatePastWeather() {
       const city = document.getElementById('trendCitySelect').value;
       const startYear = document.getElementById('trendStartYear').value;
       const endYear = document.getElementById('trendEndYear').value;
-      const [lat, lon] = cities[city];
 
       try {
-        const currentYear = new Date().getFullYear();
-        const isEndYearCurrent = parseInt(endYear) === currentYear;
-        
-        let url;
-        if (isEndYearCurrent) {
-          // For current year, use forecast API
-          url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
-        } else {
-          url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startYear}-01-01&end_date=${endYear}-12-31&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
-        }
-
-        const response = await fetch(url);
+        // Fetch data from the backend
+        const response = await fetch(`http://127.0.0.1:5000/weather/raw?city=${city.charAt(0).toUpperCase() + city.slice(1)}`);
         const data = await response.json();
+
+        const cityKey = city.charAt(0).toUpperCase() + city.slice(1);
+        const cityData = data[cityKey].filter(record => {
+          const year = parseInt(record.date.split('-')[0]);
+          return year >= startYear && year <= endYear;
+        });
 
         // Process data into yearly averages
         const yearlyData = {};
-        data.daily.time.forEach((date, index) => {
-          const year = new Date(date).getFullYear();
+        cityData.forEach(record => {
+          const year = parseInt(record.date.split('-')[0]);
           if (!yearlyData[year]) {
             yearlyData[year] = { max: [], min: [] };
           }
-          yearlyData[year].max.push(data.daily.temperature_2m_max[index]);
-          yearlyData[year].min.push(data.daily.temperature_2m_min[index]);
+          yearlyData[year].max.push(record.temperature_2m_max);
+          yearlyData[year].min.push(record.temperature_2m_min);
         });
 
-        // Calculate yearly averages
         const years = Object.keys(yearlyData).sort();
         const yearlyAverages = years.map(year => {
           const yearData = yearlyData[year];
           return {
             year: parseInt(year),
-            avg: (yearData.max.reduce((a, b) => a + b, 0) / yearData.max.length + 
+            avg: (yearData.max.reduce((a, b) => a + b, 0) / yearData.max.length +
                   yearData.min.reduce((a, b) => a + b, 0) / yearData.min.length) / 2
           };
         });
 
-        // Calculate trend line
-        const n = yearlyAverages.length;
-        const sumX = yearlyAverages.reduce((sum, point) => sum + point.year, 0);
-        const sumY = yearlyAverages.reduce((sum, point) => sum + point.avg, 0);
-        const sumXY = yearlyAverages.reduce((sum, point) => sum + point.year * point.avg, 0);
-        const sumXX = yearlyAverages.reduce((sum, point) => sum + point.year * point.year, 0);
-        
-        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-        const intercept = (sumY - slope * sumX) / n;
-
         // Update chart
         trendChart.data.labels = years;
-        trendChart.data.datasets[0].data = yearlyAverages.map(point => 
+        trendChart.data.datasets[0].data = yearlyAverages.map(point =>
           useMetric ? point.avg : celsiusToFahrenheit(point.avg)
         );
-
-        // Update trend line annotation
-        const firstYear = parseInt(years[0]);
-        const lastYear = parseInt(years[years.length - 1]);
-        trendChart.options.plugins.annotation.annotations.trendLine.yMin = 
-          useMetric ? (slope * firstYear + intercept) : celsiusToFahrenheit(slope * firstYear + intercept);
-        trendChart.options.plugins.annotation.annotations.trendLine.yMax = 
-          useMetric ? (slope * lastYear + intercept) : celsiusToFahrenheit(slope * lastYear + intercept);
-
-        // Add note for current year
-        if (isEndYearCurrent) {
-          trendChart.options.plugins.title.text = 'Temperature Trend Analysis (Including Current Year Forecast)';
-        } else {
-          trendChart.options.plugins.title.text = 'Temperature Trend Analysis';
-        }
 
         trendChart.update();
       } catch (error) {
@@ -1349,21 +1314,14 @@ function updatePastWeather() {
     async function updateExtremesAndRainfall() {
       const city = document.getElementById('annualCitySelect').value;
       const year = document.getElementById('annualYearSelect').value;
-      const [lat, lon] = cities[city];
 
       try {
-        const currentYear = new Date().getFullYear();
-        const isCurrentYear = parseInt(year) === currentYear;
-        
-        let url;
-        if (isCurrentYear) {
-          url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
-        } else {
-          url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${year}-01-01&end_date=${year}-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
-        }
-
-        const response = await fetch(url);
+        // Fetch data from the backend
+        const response = await fetch(`http://127.0.0.1:5000/weather/raw?city=${city.charAt(0).toUpperCase() + city.slice(1)}`);
         const data = await response.json();
+
+        const cityKey = city.charAt(0).toUpperCase() + city.slice(1);
+        const cityData = data[cityKey].filter(record => record.date.startsWith(year));
 
         // Process data for seasonal extremes
         const seasonalData = {
@@ -1373,16 +1331,16 @@ function updatePastWeather() {
           Spring: { max: [], min: [] }
         };
 
-        data.daily.time.forEach((date, index) => {
-          const month = new Date(date).getMonth();
+        cityData.forEach(record => {
+          const month = new Date(record.date).getMonth();
           let season;
           if (month >= 11 || month <= 1) season = 'Summer';
           else if (month >= 2 && month <= 4) season = 'Autumn';
           else if (month >= 5 && month <= 7) season = 'Winter';
           else season = 'Spring';
 
-          seasonalData[season].max.push(data.daily.temperature_2m_max[index]);
-          seasonalData[season].min.push(data.daily.temperature_2m_min[index]);
+          seasonalData[season].max.push(record.temperature_2m_max);
+          seasonalData[season].min.push(record.temperature_2m_min);
         });
 
         // Calculate seasonal extremes
@@ -1393,39 +1351,24 @@ function updatePastWeather() {
         }));
 
         // Update extremes chart
-        extremesChart.data.datasets[0].data = extremes.map(e => 
+        extremesChart.data.datasets[0].data = extremes.map(e =>
           e.max !== null ? (useMetric ? e.max : celsiusToFahrenheit(e.max)) : null
         );
-        extremesChart.data.datasets[1].data = extremes.map(e => 
+        extremesChart.data.datasets[1].data = extremes.map(e =>
           e.min !== null ? (useMetric ? e.min : celsiusToFahrenheit(e.min)) : null
         );
-
-        // Add note for current year
-        if (isCurrentYear) {
-          extremesChart.options.plugins.title.text = 'Seasonal Temperature Extremes (Current Year - Forecast)';
-        } else {
-          extremesChart.options.plugins.title.text = 'Seasonal Temperature Extremes';
-        }
 
         extremesChart.update();
 
         // Process monthly rainfall data
         const monthlyRain = Array(12).fill(0);
-        data.daily.time.forEach((date, index) => {
-          const month = new Date(date).getMonth();
-          monthlyRain[month] += data.daily.precipitation_sum[index];
+        cityData.forEach(record => {
+          const month = new Date(record.date).getMonth();
+          monthlyRain[month] += record.precipitation_sum;
         });
 
         // Update rainfall chart
         monthlyRainChart.data.datasets[0].data = monthlyRain;
-        
-        // Add note for current year
-        if (isCurrentYear) {
-          monthlyRainChart.options.plugins.title.text = 'Monthly Rainfall Distribution (Current Year - Forecast)';
-        } else {
-          monthlyRainChart.options.plugins.title.text = 'Monthly Rainfall Distribution';
-        }
-
         monthlyRainChart.update();
       } catch (error) {
         console.error('Error updating extremes and rainfall:', error);
