@@ -1785,7 +1785,7 @@
     }
     
     function downloadChartImageLocal(chart, filename = 'chart.png') {
-      chart.update(); // 确保图像稳定
+      chart.update(); 
       setTimeout(() => {
       const link = document.createElement('a');
       link.href = chart.toBase64Image('image/png', 1.0);
@@ -1793,7 +1793,7 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      }, 300); // 延迟几百毫秒，防止未渲染完毕
+      }, 300);
   }
 
   </script>
