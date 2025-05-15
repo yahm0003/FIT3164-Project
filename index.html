@@ -292,232 +292,119 @@
 
     // Function to get color based on temperature
     function getTemperatureColor(temp) {
-      // Using a more visually appealing color scale
-      return temp >= 35 ? '#d73027' :  // Very Hot (Red)
-             temp >= 30 ? '#f46d43' :  // Hot (Orange-Red)
-             temp >= 25 ? '#fdae61' :  // Warm (Light Orange)
-             temp >= 20 ? '#fee090' :  // Mild (Yellow)
-             temp >= 15 ? '#e0f3f8' :  // Cool (Light Blue)
-             temp >= 10 ? '#abd9e9' :  // Cold (Blue)
-             temp >= 5  ? '#74add1' :  // Very Cold (Darker Blue)
-                         '#4575b4';    // Freezing (Deep Blue)
-    }
+  return temp > 35 ? '#800026' :  // Dark red
+             temp > 30 ? '#E31A1C' :  // Bright red
+             temp > 25 ? '#FD8D3C' :  // Orange
+             temp > 20 ? '#FEB24C' :  // Light orange
+             temp > 15 ? '#FED976' :  // Yellow
+             temp > 10 ? '#BFDBF7' :  // Light blue
+             temp > 5  ? '#6BAED6' :  // Medium blue
+                        '#08519C';    // Dark blue  
+                        }
 
     // Function to get color based on rainfall
     function getRainfallColor(rain) {
-      return rain > 100 ? '#084081' :  // Very Heavy
-             rain > 80  ? '#0868ac' :  // Heavy
-             rain > 50  ? '#2b8cbe' :  // Moderate
-             rain > 30  ? '#4eb3d3' :  // Light
-             rain > 10  ? '#7bccc4' :  // Very Light
-                         '#a8ddb5';    // Minimal
+      if (rain <= 1) return '#E3F2FD';  // Very light blue
+      if (rain <= 2) return '#90CAF9';  // Light blue
+      if (rain <= 5) return '#2196F3';  // Medium blue
+      if (rain <= 10) return '#1976D2'; // Dark blue
+      return '#0D47A1';                 // Very dark blue
     }
 
-    // Function to create temperature layer
-    async function createTemperatureLayer() {
-      if (!window.australianStates) {
-        console.error('GeoJSON data not loaded');
-        return null;
-      }
-
-      try {
-        console.log('Fetching temperature data...'); // Debug log
-        // Create an object to store temperatures by state
-        const stateTemperatures = {};
-        
-        // Get temperature data for each capital city
-        for (const [city, [lat, lon]] of Object.entries(cities)) {
-          console.log(`Fetching temperature for ${city}...`); // Debug log
-          const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch weather data for ${city}`);
-          }
-          const data = await response.json();
-          const temp = data.current_weather.temperature;
-          console.log(`${city} temperature: ${temp}°C`); // Debug log
-          
-          // Map cities to their states
-          switch(city) {
-            case 'melbourne': stateTemperatures['Victoria'] = temp; break;
-            case 'sydney': stateTemperatures['New South Wales'] = temp; break;
-            case 'brisbane': stateTemperatures['Queensland'] = temp; break;
-            case 'perth': stateTemperatures['Western Australia'] = temp; break;
-            case 'adelaide': stateTemperatures['South Australia'] = temp; break;
-            case 'hobart': stateTemperatures['Tasmania'] = temp; break;
-            case 'darwin': stateTemperatures['Northern Territory'] = temp; break;
-            case 'canberra': stateTemperatures['Australian Capital Territory'] = temp; break;
-          }
-        }
-
-        console.log('All state temperatures:', stateTemperatures); // Debug log
-
-        // Create the layer using the temperature data
-        const layer = L.geoJSON(window.australianStates, {
-          style: function(feature) {
-            const stateName = feature.properties.STATE_NAME;
-            const temperature = stateTemperatures[stateName];
-            console.log(`Styling ${stateName} with temperature ${temperature}°C`); // Debug log
-            return {
-              fillColor: getTemperatureColor(temperature),
-              weight: 2,
-              opacity: 1,
-              color: 'white',
-              dashArray: '3',
-              fillOpacity: 0.7
-            };
-          },
-          onEachFeature: function(feature, layer) {
-            const stateName = feature.properties.STATE_NAME;
-            const temperature = stateTemperatures[stateName];
-            layer.bindPopup(`
-              <div class="popup-content">
-                <h3 class="font-bold">${stateName}</h3>
-                <p>Temperature: ${useMetric ? temperature.toFixed(1) + '°C' : celsiusToFahrenheit(temperature).toFixed(1) + '°F'}</p>
-              </div>
-            `);
-            
-            layer.on({
-              mouseover: function(e) {
-                const layer = e.target;
-                layer.setStyle({
-                  weight: 3,
-                  color: '#666',
-                  dashArray: '',
-                  fillOpacity: 0.9
-                });
-                layer.bringToFront();
-              },
-              mouseout: function(e) {
-                const layer = e.target;
-                layer.setStyle({
-                  weight: 2,
-                  color: 'white',
-                  dashArray: '3',
-                  fillOpacity: 0.7
-                });
-              }
-            });
-          }
-        });
-        console.log('Temperature layer created successfully'); // Debug log
-        return layer;
-      } catch (error) {
-        console.error('Error creating temperature layer:', error);
-        return null;
-      }
-    }
-
-    // Update initializeMap function
-    async function initializeMap() {
-      console.log('Initializing map...'); // Debug log
-      
-      // Initialize map centered on Australia with better zoom
-      map = L.map('map', {
-        center: [-25.2744, 133.7751],
-        zoom: 4,
-        minZoom: 3,
-        maxZoom: 10
-      });
+    function initializeMap() {
+ // Initialize map centered on Australia
+      map = L.map('map').setView([-27, 133], 4);
       
       // Add the base tile layer
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
-      try {
-        console.log('Fetching GeoJSON data...'); // Debug log
-        // First load the GeoJSON data
-        const response = await fetch('australia_states.geojson');
-        if (!response.ok) {
-          throw new Error(`Failed to load GeoJSON data: ${response.status} ${response.statusText}`);
-        }
-        const geojsonData = await response.json();
-        console.log('GeoJSON data loaded:', geojsonData); // Debug log
-        window.australianStates = geojsonData;
-        
-        console.log('Creating temperature layer...'); // Debug log
-        // Then create and add the temperature layer
-        const tempLayer = await createTemperatureLayer();
-        if (tempLayer) {
-          tempLayer.addTo(map);
-          console.log('Temperature layer added to map'); // Debug log
-        } else {
-          console.error('Failed to create temperature layer');
-        }
-
-        // Add temperature legend
-        const legend = L.control({ position: 'bottomright' });
-        legend.onAdd = function(map) {
-          const div = L.DomUtil.create('div', 'legend');
+      // Add layer control buttons
+      const layerControl = L.control({ position: 'topright' });
+      layerControl.onAdd = function(map) {
+        const div = L.DomUtil.create('div', 'layer-control');
           div.innerHTML = `
-            <div class="legend-container bg-white p-3 rounded-lg shadow-lg">
-              <div class="legend-title bg-gray-800 text-white p-2 rounded-t-lg text-center font-bold mb-2">
-                Temperature
-              </div>
-              <div class="space-y-1">
-                <div class="flex items-center">
-                  <span class="w-6 h-6 rounded mr-2" style="background: #d73027"></span>
-                  <span>≥ 35°C</span>
-                </div>
-                <div class="flex items-center">
-                  <span class="w-6 h-6 rounded mr-2" style="background: #f46d43"></span>
-                  <span>30-35°C</span>
-                </div>
-                <div class="flex items-center">
-                  <span class="w-6 h-6 rounded mr-2" style="background: #fdae61"></span>
-                  <span>25-30°C</span>
-                </div>
-                <div class="flex items-center">
-                  <span class="w-6 h-6 rounded mr-2" style="background: #fee090"></span>
-                  <span>20-25°C</span>
-                </div>
-                <div class="flex items-center">
-                  <span class="w-6 h-6 rounded mr-2" style="background: #e0f3f8"></span>
-                  <span>15-20°C</span>
-                </div>
-                <div class="flex items-center">
-                  <span class="w-6 h-6 rounded mr-2" style="background: #abd9e9"></span>
-                  <span>10-15°C</span>
-                </div>
-                <div class="flex items-center">
-                  <span class="w-6 h-6 rounded mr-2" style="background: #74add1"></span>
-                  <span>5-10°C</span>
-                </div>
-                <div class="flex items-center">
-                  <span class="w-6 h-6 rounded mr-2" style="background: #4575b4"></span>
-                  <span>< 5°C</span>
-                </div>
-              </div>
+                     <div class="bg-white p-2 rounded shadow">
+            <button id="tempLayer" class="px-3 py-1 bg-blue-500 text-white rounded mr-2">Temperature</button>
+            <button id="rainLayer" class="px-3 py-1 bg-green-500 text-white rounded">Rainfall</button>
             </div>
           `;
-          return div;
-        };
-        legend.addTo(map);
+         
+        // Add click event listeners
+        div.querySelector('#tempLayer').addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          switchLayer('temperature');
+        });
+        
+        div.querySelector('#rainLayer').addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          switchLayer('rainfall');
+        });
 
-      } catch (error) {
-        console.error('Error initializing map:', error);
-        alert(`Error loading map data: ${error.message}`);
-      }
+          return div;
+      };
+      layerControl.addTo(map);
 
       // Initialize markers for all cities
-      Object.entries(cities).forEach(([city, [lat, lon]]) => {
+      Object.entries(cities_2).forEach(([city, [lat, lon]]) => {
         updateCityWeatherIcon(city, lat, lon);
       });
 
-      // Set bounds for Australia
-      const australiaBounds = L.latLngBounds(
-        [-43.6345972634, 113.338953078], // Southwest corner
-        [-10.6681857235, 153.569469029]  // Northeast corner
-      );
-      
-      // Set map bounds to Australia
-      map.setMaxBounds(australiaBounds.pad(0.5));
+      // Load GeoJSON data and initialize the temperature layer
+      fetch('./australia_states.geojson')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('GeoJSON data loaded successfully');
+          window.australianStates = data;
+          updateChoroplethMap('temperature');
+        })
+        .catch(error => {
+          console.error('Error loading GeoJSON:', error);
+          alert('Error loading map data. Please try again later.');
+        });
     }
 
-    function createChoroplethLayer(layerType) {
-      if (!window.australianStates) return null;
+    async function updateChoroplethMap(layerType) {
+      if (!window.australianStates) {
+        console.error('GeoJSON data not loaded yet');
+        return;
+      }
+      
+      currentLayer = layerType;
+      console.log('Updating choropleth map for:', layerType);
+      
+      // Remove existing layers and legend if they exist
+      if (temperatureLayer) map.removeLayer(temperatureLayer);
+      if (rainfallLayer) map.removeLayer(rainfallLayer);
+      if (window.currentLegend) map.removeControl(window.currentLegend);
 
-      return L.geoJSON(window.australianStates, {
+      try {
+        // Fetch current weather data for all capitals
+        const weatherData = {};
+        await Promise.all(Object.entries(cities_2).map(async ([city, [lat, lon]]) => {
+          try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=precipitation_sum&timezone=auto`;
+            const res = await fetch(url);
+            const data = await res.json();
+            weatherData[city] = {
+              temperature: data.current_weather.temperature,
+              rainfall: data.daily.precipitation_sum[0] || 0
+            };
+          } catch (error) {
+            console.error(`Error fetching data for ${city}:`, error);
+          }
+        }));
+
+        // Create the choropleth layer
+        const layer = L.geoJSON(window.australianStates, {
         style: function(feature) {
           const stateName = feature.properties.STATE_NAME.toLowerCase();
           let capitalCity;
@@ -535,22 +422,18 @@
             default: capitalCity = null;
           }
 
-          // Get the weather data for this state
-          const data = cities[capitalCity];
+          const data = weatherData[capitalCity];
           if (!data) {
             return {
               fillColor: '#cccccc',
               color: '#666',
               weight: 2,
               opacity: 1,
-              fillOpacity: 0.7
+              fillOpacity: 0.8
             };
           }
 
-          // Get the appropriate value and color
-          const value = layerType === 'temperature' ? 
-            data.temperature : 
-            data.rainfall;
+ const value = layerType === 'temperature' ? data.temperature : data.rainfall;
           const color = layerType === 'temperature' ? 
             getTemperatureColor(value) : 
             getRainfallColor(value);
@@ -560,77 +443,150 @@
             color: '#ffffff',
             weight: 1,
             opacity: 0.5,
-            fillOpacity: 0.7
+            fillOpacity: 0.8
           };
-        }
-      });
-    }
+        },
+          onEachFeature: function(feature, layer) {
+            const stateName = feature.properties.STATE_NAME;
+            const capitalName = stateName.toLowerCase();
+            let capitalCity;
+            
+            switch(capitalName) {
+              case 'victoria': capitalCity = 'melbourne'; break;
+              case 'new south wales': capitalCity = 'sydney'; break;
+              case 'queensland': capitalCity = 'brisbane'; break;
+              case 'western australia': capitalCity = 'perth'; break;
+              case 'south australia': capitalCity = 'adelaide'; break;
+              case 'tasmania': capitalCity = 'hobart'; break;
+              case 'northern territory': capitalCity = 'darwin'; break;
+              case 'australian capital territory': capitalCity = 'canberra'; break;
+              default: capitalCity = null;
+            }
+            
+            const data = weatherData[capitalCity];
+            
+            if (data) {
+              const displayValue = layerType === 'temperature' ? 
+                formatTemperature(data.temperature) :
+                `${data.rainfall.toFixed(1)} mm`;
 
-    function switchLayer(layerType) {
-      if (!temperatureLayer || !rainfallLayer) return;
+              // Create tooltip content
+              const tooltipContent = `
+                <div style="font-size: 14px; line-height: 1.5;">
+                  <strong>${stateName}</strong><br>
+                  Capital: ${capitalCity.charAt(0).toUpperCase() + capitalCity.slice(1)}<br>
+                  ${layerType.charAt(0).toUpperCase() + layerType.slice(1)}: ${displayValue}
+                </div>
+              `;
 
+              // Add both popup and tooltip
+              layer.bindPopup(tooltipContent);
+              layer.bindTooltip(tooltipContent, {
+                direction: 'center',
+                permanent: false,
+                sticky: true,
+                opacity: 0.9,
+                className: 'custom-tooltip'
+              });
+            }
+          }
+        }).addTo(map);
+
+        // Store the layer reference
       if (layerType === 'temperature') {
-        if (rainfallLayer) map.removeLayer(rainfallLayer);
-        temperatureLayer.addTo(map);
+          temperatureLayer = layer;
       } else {
-        if (temperatureLayer) map.removeLayer(temperatureLayer);
-        rainfallLayer.addTo(map);
+        rainfallLayer = layer;
       }
 
-      // Update the legend
-      if (window.currentLegend) {
-        map.removeControl(window.currentLegend);
-      }
-      createLegend(layerType).addTo(map);
-    }
-
-    function createLegend(layerType) {
+  // Create and add the legend
       const legend = L.control({ position: 'bottomright' });
       legend.onAdd = function(map) {
         const div = L.DomUtil.create('div', 'legend');
-        div.innerHTML = `
-          <div class="legend-container bg-white p-3 rounded-lg shadow-lg">
-            <div class="legend-title bg-${layerType === 'temperature' ? 'red' : 'blue'}-600 text-white p-2 rounded-t-lg text-center font-bold mb-2">
-              ${layerType === 'temperature' ? 'Temperature' : 'Rainfall'}
+                  div.style.backgroundColor = 'white';
+          div.style.padding = '0';
+          div.style.margin = '0';
+          div.style.borderRadius = '4px';
+          div.style.border = '1px solid rgba(0,0,0,0.2)';
+          div.style.fontSize = '11px';
+          div.style.lineHeight = '16px';
+          div.style.maxWidth = '160px';
+          div.style.maxHeight = '300px';
+          div.style.overflowY = 'auto';
+          div.style.marginBottom = '30px';
+          div.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+
+          let grades, title;
+          if (layerType === 'temperature') {
+            title = 'Temperature';
+            grades = [
+              { min: 35, max: null, color: '#800026', label: '> 35°C', desc: 'Very Hot' },
+              { min: 30, max: 35, color: '#E31A1C', label: '30-35°C', desc: 'Hot' },
+              { min: 25, max: 30, color: '#FD8D3C', label: '25-30°C', desc: 'Warm' },
+              { min: 20, max: 25, color: '#FEB24C', label: '20-25°C', desc: 'Mild' },
+              { min: 15, max: 20, color: '#FED976', label: '15-20°C', desc: 'Cool' },
+              { min: 10, max: 15, color: '#BFDBF7', label: '10-15°C', desc: 'Cold' },
+              { min: 5, max: 10, color: '#6BAED6', label: '5-10°C', desc: 'Very Cold' },
+              { min: null, max: 5, color: '#08519C', label: '< 5°C', desc: 'Freezing' }
+            ];
+          } else {
+            title = 'Rainfall';
+            grades = [
+              { min: 10, max: null, color: '#0D47A1', label: '> 10mm', desc: 'Heavy Rain' },
+              { min: 5, max: 10, color: '#1976D2', label: '5-10mm', desc: 'Moderate Rain' },
+              { min: 2, max: 5, color: '#2196F3', label: '2-5mm', desc: 'Light Rain' },
+              { min: 1, max: 2, color: '#90CAF9', label: '1-2mm', desc: 'Very Light Rain' },
+              { min: 0, max: 1, color: '#E3F2FD', label: '0-1mm', desc: 'Minimal Rain' }
+            ];
+          }
+
+          div.innerHTML = `
+            <div style="background-color: ${layerType === 'temperature' ? '#E31A1C' : '#1976D2'}; color: white; padding: 4px; border-top-left-radius: 3px; border-top-right-radius: 3px; font-weight: bold; font-size: 11px; text-align: center;">
+              ${layerType === 'temperature' ? 'Temperature Legend' : 'Rainfall Legend'}
             </div>
-            <div class="legend-items">
-        `;
-
-        const grades = layerType === 'temperature' ? [
-          { value: 35, label: '> 35°C', color: '#800026', desc: 'Very Hot' },
-          { value: 30, label: '30-35°C', color: '#E31A1C', desc: 'Hot' },
-          { value: 25, label: '25-30°C', color: '#FD8D3C', desc: 'Warm' },
-          { value: 20, label: '20-25°C', color: '#FEB24C', desc: 'Mild' },
-          { value: 15, label: '15-20°C', color: '#FED976', desc: 'Cool' },
-          { value: 10, label: '10-15°C', color: '#BFDBF7', desc: 'Cold' },
-          { value: 5, label: '5-10°C', color: '#6BAED6', desc: 'Very Cold' },
-          { value: 0, label: '< 5°C', color: '#08519C', desc: 'Freezing' }
-        ] : [
-          { value: 100, label: '> 100mm', color: '#084081', desc: 'Very Heavy' },
-          { value: 80, label: '80-100mm', color: '#0868ac', desc: 'Heavy' },
-          { value: 50, label: '50-80mm', color: '#2b8cbe', desc: 'Moderate' },
-          { value: 30, label: '30-50mm', color: '#4eb3d3', desc: 'Light' },
-          { value: 10, label: '10-30mm', color: '#7bccc4', desc: 'Very Light' },
-          { value: 0, label: '< 10mm', color: '#a8ddb5', desc: 'Minimal' }
-        ];
-
-        grades.forEach(grade => {
-          div.innerHTML += `
-            <div class="legend-item flex items-center mb-1">
-              <span class="legend-color w-6 h-6 rounded" style="background: ${grade.color}"></span>
-              <span class="legend-label ml-2 text-sm">
-                <span class="font-semibold">${grade.label}</span>
-                <span class="text-gray-600 text-xs">${grade.desc}</span>
-              </span>
+            <div style="padding: 4px;">
+              ${grades.map(grade => `
+                <div style="display: flex; align-items: center; margin-bottom: 0px;">
+                  <i style="
+                    background: ${grade.color}; 
+                    display: inline-block; 
+                    width: 16px; 
+                    height: 16px; 
+                    margin-right: 4px; 
+                    opacity: 0.9;
+                    border: 1px solid rgba(0,0,0,0.2);
+                    border-radius: 2px;
+                  "></i>
+                  <span style="flex-grow: 1;">
+                    <strong style="font-size: 10px;">${grade.label}</strong>
+                    <span style="color: #666; font-size: 9px; margin-left: 4px;">${grade.desc}</span>
+                   </span>
+                    </div>
+              `).join('')}
             </div>
           `;
-        });
 
-        div.innerHTML += `</div></div>`;
         return div;
       };
+
+      // Store the legend reference and add it to the map
       window.currentLegend = legend;
-      return legend;
+      legend.addTo(map);
+
+        // Update weather icons after choropleth is created
+        Object.entries(cities_2).forEach(([city, [lat, lon]]) => {
+          updateCityWeatherIcon(city, lat, lon);
+        });
+
+      } catch (error) {
+        console.error('Error updating choropleth map:', error);
+      }
+    }
+
+    function switchLayer(layerType) {
+      if (currentLayer !== layerType) {
+        updateChoroplethMap(layerType);
+      }
     }
 
     // Function to create weather icon
@@ -650,7 +606,19 @@
       brisbane: [-27.4698, 153.0251],
       perth: [-31.9505, 115.8605],
       adelaide: [-34.9285, 138.6007],
-      canberra: [-35.2809, 149.1300],
+      canberra: [-35.2809, 149.1300]
+  
+    };
+    
+    const cities_2 = {
+      melbourne: [-37.8136, 144.9631],
+      sydney: [-33.8688, 151.2093],
+      brisbane: [-27.4698, 153.0251],
+      perth: [-31.9505, 115.8605],
+      adelaide: [-34.9285, 138.6007],
+      hobart: [-42.8821, 147.3272],
+      darwin: [-12.4634, 130.9277],
+      canberra: [-35.2809, 149.1300]
   
     };
 
@@ -748,31 +716,6 @@
 
       updateForecastChart(); // Add this line to initialize the forecast chart
     });
-
-    function initializeMap() {
-    // Initialize map
-      map = L.map('map').setView([-37.8136, 144.9631], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-      
-      popup = L.popup();
-      
-      // Add click handler
-      map.on('click', onMapClick);
-
-      // Initialize markers for all cities
-      Object.entries(cities).forEach(([city, [lat, lon]]) => {
-        updateCityWeatherIcon(city, lat, lon);
-      });
-    }
-
-    function onMapClick(e) {
-      popup
-        .setLatLng(e.latlng)
-        .setContent("Current location at " + e.latlng.toString())
-        .openOn(map);
-} 
 
     function initializeCharts() {
       // Initialize forecast chart
@@ -2053,4 +1996,3 @@ function updatePastWeather() {
   </script>
 </body>
 </html>
-
