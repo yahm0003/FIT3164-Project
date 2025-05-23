@@ -13,7 +13,9 @@ CITIES = {
     "Melbourne": (-37.785587, 144.939758),
     "Brisbane": (-27.451670, 153.020142),
     "Sydney": (-33.848858, 151.195511),
-    "Perth": (-31.950790, 115.807236)
+    "Perth": (-31.950790, 115.807236),
+    "Adelaide": (-34.903339, 138.540604),
+    "Canberra": (-35.254833, 149.080460)
 }
 
 # Route to get raw weather data for multiple cities
