@@ -6,19 +6,60 @@
   <title>Weather Dashboard</title>
   <!--import tailwindcss-->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            },
+            secondary: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+            },
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
   <!--import leaflet for the interactive map-->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /> 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Import Chart.js and its annotation plugin -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+  <!-- Import Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Import Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     .legend.leaflet-control {
       padding: 0;
       margin: 0;
     }
-  </style>
-  <style>
     .legend-container {
       min-width: 200px;
       background: white;
@@ -49,200 +90,750 @@
     .popup-content p {
       margin: 4px 0;
     }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+    }
+    .card {
+      background-color: #1e293b;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+     
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .nav-link {
+      transition: background-color 0.3s ease, color 0.3s ease;
+      border-radius: 0.375rem;
+      padding: 0.5rem 1rem;
+    }
+    .nav-link:hover {
+      background-color: #334155;
+    }
+    .nav-link.active {
+      background-color: #0ea5e9;
+      color: white;
+    }
+    .btn {
+      transition: all 0.3s ease;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+    .btn:active {
+      transform: translateY(1px);
+    }
+    .weather-card {
+      background: linear-gradient(to bottom right, #1e293b, #334155);
+    }
+    .dashboard-header {
+      background: linear-gradient(90deg, #0f172a, #1e293b);
+      border-bottom: 1px solid #334155;
+    }
+    .map-container {
+      border-radius: 0.5rem;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .chart-container {
+      border-radius: 0.5rem;
+      background-color: #1e293b;
+      padding: 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    /* Add these new styles */
+    .sun-progress {
+      position: relative;
+      width: 100%;
+      height: 3px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .sun-indicator {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: #ffd700;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #ffd700;
+      transform: translateY(-50%);
+      transition: left 0.3s ease;
+    }
+
+    .circular-progress {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .circular-progress::before {
+      content: '';
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background-color: rgba(255,255,255,0.1);
+    }
+
+    .progress-value {
+      position: relative;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .weather-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .weather-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .weather-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .weather-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 8px 0;
+    }
+
+    .weather-label {
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .uv-indicator {
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(to right, 
+        #3EC73E 0%, #3EC73E 20%,    /* Low */
+        #F7D047 20%, #F7D047 40%,   /* Moderate */
+        #F77F47 40%, #F77F47 60%,   /* High */
+        #F74747 60%, #F74747 80%,   /* Very High */
+        #904790 80%, #904790 100%   /* Extreme */
+      );
+      border-radius: 2px;
+      margin-top: 8px;
+    }
+
+    .uv-marker {
+      width: 4px;
+      height: 8px;
+      background: white;
+      border-radius: 2px;
+      transform: translateY(-2px);
+      transition: margin-left 0.3s ease;
+    }
+
+    /* Updated and new styles */
+    .weather-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .weather-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    }
+
+    .weather-card:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .weather-value {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(120deg, #fff, rgba(255, 255, 255, 0.7));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0.5rem 0;
+      transition: all 0.3s ease;
+    }
+
+    .weather-card:hover .weather-value {
+      transform: scale(1.05);
+    }
+
+    .weather-icon {
+      font-size: 1.5rem;
+      opacity: 0.8;
+      transition: all 0.3s ease;
+    }
+
+    .weather-card:hover .weather-icon {
+      opacity: 1;
+      transform: rotate(360deg);
+    }
+
+    .sun-progress {
+      position: relative;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .sun-indicator {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #ffd700;
+      border-radius: 50%;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+      transform: translateY(-50%);
+      transition: left 0.3s ease;
+      animation: glow 2s infinite;
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+      50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.8); }
+    }
+
+    .circular-progress {
+      width: 80px;
+      height: 80px;
+      margin: 10px auto;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .circular-progress::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: conic-gradient(
+        from 0deg,
+        rgba(255, 255, 255, 0.8) var(--progress),
+        rgba(255, 255, 255, 0.1) var(--progress)
+      );
+      mask: radial-gradient(transparent 55%, white 56%);
+      -webkit-mask: radial-gradient(transparent 55%, white 56%);
+    }
+
+    .progress-value {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: white;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    .uv-indicator {
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(to right,
+        #3EC73E 0%, #3EC73E 20%,
+        #F7D047 20%, #F7D047 40%,
+        #F77F47 40%, #F77F47 60%,
+        #F74747 60%, #F74747 80%,
+        #904790 80%, #904790 100%
+      );
+      border-radius: 3px;
+      margin: 8px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .uv-marker {
+      width: 6px;
+      height: 12px;
+      background: white;
+      border-radius: 3px;
+      transform: translateY(-3px);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      transition: margin-left 0.3s ease;
+    }
+
+    .uv-label {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .weather-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 0.5rem;
+    }
+
+    .time-range {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 4px;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .weather-unit {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin-left: 4px;
+      font-weight: 500;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    .grid-cols-4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    @media (max-width: 1024px) {
+      .grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid-cols-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Add these new styles */
+    .weather-description {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 0.5rem;
+      line-height: 1.2;
+    }
+
+    .weather-card {
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .weather-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .weather-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 1024px) {
+      .grid-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid-container {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
+<body class="bg-secondary-900 text-secondary-50 min-h-screen">
+  <!-- Header -->
+  <header class="dashboard-header py-4 px-6 flex items-center justify-between shadow-md">
+    <div class="flex items-center">
+      <i class="fas fa-cloud-sun text-4xl text-primary-400 mr-3"></i>
+      <h1 class="text-2xl font-bold">Australian Weather Dashboard</h1>
+    </div>
+  </header>
+
   <div class="flex min-h-screen">
-    <!-- Unit Converter - Moved outside the sidebar and adjusted z-index -->
-    <div class="fixed top-4 right-4 z-[9999]">
-      <button id="unitToggle" onclick="toggleUnits()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-full shadow-lg flex items-center space-x-2 transition-colors">
-        <span id="unitIcon" class="text-lg">🌡️</span>
-        <span id="unitText" class="font-semibold">°C / km/h</span>
-      </button>
-    </div>
-    
     <!-- Sidebar -->
-    <div class="w-52 bg-gray-800 p-6 space-y-6">
-      <h2 class="text-xl font-bold">Sections</h2>
-      <button onclick="showSection('current')" class="block w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Current Weather</button>
-      <button onclick="showSection('past')" class="block w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Past Weather</button>
-    </div>
+    <aside class="w-64 bg-secondary-800 p-6 space-y-6 shadow-lg">
+      <nav>
+        <h2 class="text-xl font-bold mb-4 text-secondary-100">Navigation</h2>
+        <ul class="space-y-2">
+          <li>
+            <button onclick="showSection('current')" class="nav-link active w-full text-left flex items-center">
+              <i class="fas fa-cloud-sun mr-2"></i>
+              <span>Current Weather</span>
+            </button>
+          </li>
+          <li>
+            <button onclick="showSection('map')" class="nav-link w-full text-left flex items-center">
+              <i class="fas fa-map-marked-alt mr-2"></i>
+              <span>Weather Map</span>
+            </button>
+          </li>
+          <li>
+            <button onclick="showSection('past')" class="nav-link w-full text-left flex items-center">
+              <i class="fas fa-chart-line mr-2"></i>
+              <span>Weather Trends</span>
+            </button>
+          </li>
+          <li>
+            <button onclick="showSection('settings')" class="nav-link w-full text-left flex items-center">
+              <i class="fas fa-cog mr-2"></i>
+              <span>Settings</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="border-t border-secondary-700 pt-6">
+        <h2 class="text-xl font-bold mb-4 text-secondary-100">Cities</h2>
+        <ul class="space-y-1 text-secondary-300">
+          <li class="flex items-center"><i class="fas fa-map-marker-alt mr-2 text-xs"></i> Melbourne</li>
+          <li class="flex items-center"><i class="fas fa-map-marker-alt mr-2 text-xs"></i> Sydney</li>
+          <li class="flex items-center"><i class="fas fa-map-marker-alt mr-2 text-xs"></i> Brisbane</li>
+          <li class="flex items-center"><i class="fas fa-map-marker-alt mr-2 text-xs"></i> Perth</li>
+          <li class="flex items-center"><i class="fas fa-map-marker-alt mr-2 text-xs"></i> Adelaide</li>
+          <li class="flex items-center"><i class="fas fa-map-marker-alt mr-2 text-xs"></i> Canberra</li>
+        </ul>
+      </div>
+      
+      <div class="border-t border-secondary-700 pt-6">
+        <h2 class="text-md font-semibold mb-2 text-secondary-300">Data Source</h2>
+        <p class="text-sm text-secondary-400">Weather data provided by Open-Meteo API</p>
+      </div>
+    </aside>
 
     <!-- Main Content -->
-    <div class="flex-1 p-6">
+    <main class="flex-1 p-4 overflow-auto">
       <!-- Current Weather Section -->
       <div id="current">
-        <h1 class="text-3xl font-bold mb-4 text-center">Current Weather</h1>
-        <div class="flex justify-center mb-4">
-          <button onclick="locateUser()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">📍 Use My Location</button>
-        </div>
-        <div class="mb-4 flex justify-center">
-          <select id="currentCitySelect" class="bg-gray-800 text-white px-4 py-2 rounded">
-            <option value="melbourne">Melbourne</option>
-            <option value="sydney">Sydney</option>
-            <option value="brisbane">Brisbane</option>
-            <option value="perth">Perth</option>
-          </select>
-        </div>
-
-        <div id="cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 text-center"></div>
-        <div id="map" style="height: 500px;"></div>
-        <div class="mb-4 flex justify-center gap-4 mt-8">
-          <select id="forecastCityA" class="bg-gray-800 text-white px-4 py-2 rounded">
-            <option value="melbourne">Melbourne</option>
-            <option value="sydney">Sydney</option>
-            <option value="brisbane">Brisbane</option>
-            <option value="perth">Perth</option>
-            <option value="adelaide">Adelaide</option>
-            <option value="canberra">Canberra</option>
-          </select>
-          <select id="forecastCityB" class="bg-gray-800 text-white px-4 py-2 rounded">
-            <option value="sydney">Sydney</option>
-            <option value="melbourne">Melbourne</option>
-            <option value="brisbane">Brisbane</option>
-            <option value="perth">Perth</option>
-            <option value="adelaide">Adelaide</option>
-            <option value="canberra">Canberra</option>
-          </select>
-        </div>
-
-        <h2 class="text-2xl font-semibold mb-4 text-center">Next 7 Days Forecast</h2>
-        <div class="bg-gray-800 p-6 rounded-lg max-h">
-          <canvas id="forecastChart" class="w-full max-h-[400px] h-[320px]"></canvas>
-            <div class="flex justify-end mt-2">
-            <button onclick="downloadChartImageLocal(forecastChart, 'forecast_comparison.png')"
-              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">
-              Download Forecast Chart
-            </button>
+        <div class="grid grid-cols-1 gap-3">
+          <!-- Top Section with Controls -->
+          <section class="card p-4 mb-2">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+              <h1 class="text-xl font-bold text-secondary-100 mb-2 md:mb-0">Current Weather</h1>
+              <div class="flex flex-row gap-2 items-center">
+                <button onclick="locateUser()" class="btn bg-primary-600 hover:bg-primary-700 px-3 py-2 rounded flex items-center justify-center">
+                  <i class="fas fa-location-crosshairs mr-2"></i> Use My Location
+                </button>
+                <select id="currentCitySelect" class="bg-secondary-800 text-secondary-100 px-3 py-2 rounded border border-secondary-700">
+                  <option value="melbourne">Melbourne</option>
+                  <option value="sydney">Sydney</option>
+                  <option value="brisbane">Brisbane</option>
+                  <option value="perth">Perth</option>
+                  <option value="adelaide">Adelaide</option>
+                  <option value="canberra">Canberra</option>
+                </select>
+              </div>
             </div>
+          </section>
+
+          <!-- Weather Cards -->
+          <section>
+            <div id="cards" class="grid-container"></div>
+          </section>
+
+          <!-- Forecast Section -->
+          <section class="card p-6">
+            <div class="mb-6">
+              <h2 class="text-2xl font-bold mb-6 text-secondary-100">Next 7 Days Forecast</h2>
+              <div class="mb-6 flex justify-center gap-4">
+                <select id="forecastCityA" class="bg-secondary-800 text-secondary-100 px-4 py-2 rounded border border-secondary-700">
+                  <option value="melbourne">Melbourne</option>
+                  <option value="sydney">Sydney</option>
+                  <option value="brisbane">Brisbane</option>
+                  <option value="perth">Perth</option>
+                  <option value="adelaide">Adelaide</option>
+                  <option value="canberra">Canberra</option>
+                </select>
+                <select id="forecastCityB" class="bg-secondary-800 text-secondary-100 px-4 py-2 rounded border border-secondary-700">
+                  <option value="sydney">Sydney</option>
+                  <option value="melbourne">Melbourne</option>
+                  <option value="brisbane">Brisbane</option>
+                  <option value="perth">Perth</option>
+                  <option value="adelaide">Adelaide</option>
+                  <option value="canberra">Canberra</option>
+                </select>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="forecastChart" class="w-full max-h-[400px] h-[320px]"></canvas>
+            </div>
+            <div class="flex justify-end mt-4">
+              <button onclick="downloadChartImageLocal(forecastChart, 'forecast_comparison.png')"
+                class="btn px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded flex items-center">
+                <i class="fas fa-download mr-2"></i> Download Chart
+              </button>
+            </div>
+          </section>
         </div>
       </div>
+
+      <!-- Map Section -->
+      <div id="map-section" class="hidden">
+        <div class="grid grid-cols-1 gap-3">
+          <!-- Map Controls -->
+          <section class="card p-4 mb-2">
+            <div class="flex items-center justify-between">
+              <h1 class="text-xl font-bold text-secondary-100">Weather Map</h1>
+              <div class="flex gap-2">
+                <button onclick="locateUser()" class="btn bg-primary-600 hover:bg-primary-700 px-3 py-2 rounded flex items-center justify-center">
+                  <i class="fas fa-location-crosshairs mr-2"></i> Use My Location
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Map Container -->
+          <section class="flex-1">
+            <div class="card p-0 map-container h-[calc(100vh-10rem)]">
+              <div id="map" class="w-full h-full"></div>
+            </div>
+          </section>
+            </div>
+          </div>
 
       <!-- Past Weather Section -->
       <div id="past" class="hidden">
-        <h1 class="text-3xl font-bold mb-4 text-center">Weather Trends Analysis</h1>
-        <div class="mb-4 flex flex-wrap justify-center gap-4">
-          <select id="pastCitySelectA" class="bg-gray-800 text-white px-4 py-2 rounded">
-            <option value="melbourne">Melbourne</option>
-            <option value="sydney">Sydney</option>
-            <option value="brisbane">Brisbane</option>
-            <option value="perth">Perth</option>
-          </select>
-          <select id="pastCitySelectB" class="bg-gray-800 text-white px-4 py-2 rounded">
-            <option value="sydney">Sydney</option>
-            <option value="melbourne">Melbourne</option>
-            <option value="brisbane">Brisbane</option>
-            <option value="perth">Perth</option>
-          </select>
-          <select id="yearSelect" class="bg-gray-800 text-white px-4 py-2 rounded"></select>
-          <select id="monthSelect" class="bg-gray-800 text-white px-4 py-2 rounded">
-            <option value="01">January</option>
-            <option value="02">February</option>
-            <option value="03">March</option>
-            <option value="04">April</option>
-            <option value="05">May</option>
-            <option value="06">June</option>
-            <option value="07">July</option>
-            <option value="08">August</option>
-            <option value="09">September</option>
-            <option value="10">October</option>
-            <option value="11">November</option>
-            <option value="12">December</option>
-          </select>
-        </div>
+        <div class="grid grid-cols-1 gap-3">
+          <!-- Header with Title and Controls -->
+          <section class="card p-4 mb-2">
+            <h1 class="text-xl font-bold mb-2 text-secondary-100">Weather Trends Analysis</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div class="space-y-2">
+                <h3 class="text-base font-semibold text-secondary-200">City Comparison</h3>
+                <div class="flex flex-wrap gap-2">
+                  <select id="pastCitySelectA" class="bg-secondary-800 text-secondary-100 px-3 py-2 rounded border border-secondary-700"></select>
+                  <select id="pastCitySelectB" class="bg-secondary-800 text-secondary-100 px-3 py-2 rounded border border-secondary-700"></select>
+                  </div>
+                </div>
+              <div class="space-y-2">
+                <h3 class="text-base font-semibold text-secondary-200">Time Period</h3>
+                <div class="flex flex-wrap gap-2">
+                  <select id="yearSelect" class="bg-secondary-800 text-secondary-100 px-3 py-2 rounded border border-secondary-700"></select>
+                  <select id="monthSelect" class="bg-secondary-800 text-secondary-100 px-3 py-2 rounded border border-secondary-700">
+                      <option value="01">January</option>
+                      <option value="02">February</option>
+                      <option value="03">March</option>
+                      <option value="04">April</option>
+                      <option value="05">May</option>
+                      <option value="06">June</option>
+                      <option value="07">July</option>
+                      <option value="08">August</option>
+                      <option value="09">September</option>
+                      <option value="10">October</option>
+                      <option value="11">November</option>
+                      <option value="12">December</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </section>
 
-        <!-- Daily Comparison Charts -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div class="bg-gray-800 p-6 rounded-lg">
-            <h2 class="text-xl font-semibold mb-4">Daily Temperature Comparison</h2>
-            <canvas id="tempChart" class="w-full max-h-[400px] h-[320px]"></canvas>
-            <div class="flex justify-end mt-2">
-              <button onclick="downloadChartImageLocal(tempChart, 'daily_temperature.png')"
-                  class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">
-                  Download Temperature Chart
-              </button>
-            </div>
+            <!-- Daily Comparison Charts -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="card p-6">
+                <h2 class="text-xl font-semibold mb-4 text-secondary-100">Daily Temperature Comparison</h2>
+                <div class="chart-container">
+                  <canvas id="tempChart" class="w-full max-h-[400px] h-[320px]"></canvas>
+                </div>
+                <div class="flex justify-end mt-4">
+                  <button onclick="downloadChartImageLocal(tempChart, 'daily_temperature.png')"
+                    class="btn px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded flex items-center">
+                    <i class="fas fa-download mr-2"></i> Download Chart
+                  </button>
+                </div>
+              </div>
+
+              <div class="card p-6">
+                <h2 class="text-xl font-semibold mb-4 text-secondary-100">Daily Rainfall Comparison</h2>
+                <div class="chart-container">
+                  <canvas id="rainChart" class="w-full max-h-[400px] h-[320px]"></canvas>
+                </div>
+                <div class="flex justify-end mt-4">
+                  <button onclick="downloadChartImageLocal(rainChart, 'daily_rainfall.png')"
+                    class="btn px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded flex items-center">
+                    <i class="fas fa-download mr-2"></i> Download Chart
+                  </button>
+                </div>
+              </div>
+            </section>
+
+          <!-- Annual Pattern Section -->
+          <section class="card p-6">
+            <h2 class="text-xl font-semibold mb-4 text-secondary-100">Annual Temperature Pattern</h2>
+            <div class="flex flex-wrap items-center gap-4 mb-6">
+              <select id="annualCitySelect" class="bg-secondary-800 text-secondary-100 px-4 py-2 rounded border border-secondary-700">
+                    <option value="melbourne">Melbourne</option>
+                    <option value="sydney">Sydney</option>
+                    <option value="brisbane">Brisbane</option>
+                    <option value="perth">Perth</option>
+                    <option value="adelaide">Adelaide</option>
+                    <option value="canberra">Canberra</option>
+                  </select>
+              <select id="annualYearSelect" class="bg-secondary-800 text-secondary-100 px-4 py-2 rounded border border-secondary-700"></select>
+                </div>
+                <div class="chart-container">
+              <canvas id="annualPatternChart" class="w-full max-h-[400px] h-[320px]"></canvas>
+                </div>
+                <div class="flex justify-end mt-4">
+              <button onclick="downloadChartImageLocal(annualPatternChart, 'annual_pattern.png')"
+                    class="btn px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded flex items-center">
+                    <i class="fas fa-download mr-2"></i> Download Chart
+                  </button>
+                </div>
+          </section>
+
+          <!-- Historical Extremes -->
+          <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="card p-6">
+              <h2 class="text-xl font-semibold mb-4 text-secondary-100">Temperature Extremes</h2>
+                <div class="chart-container">
+                <canvas id="extremesChart" class="w-full max-h-[400px] h-[320px]"></canvas>
+                </div>
+                <div class="flex justify-end mt-4">
+                <button onclick="downloadChartImageLocal(extremesChart, 'temperature_extremes.png')"
+                    class="btn px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded flex items-center">
+                    <i class="fas fa-download mr-2"></i> Download Chart
+                  </button>
+                </div>
+              </div>
+            <div class="card p-6">
+              <h2 class="text-xl font-semibold mb-4 text-secondary-100">Monthly Rainfall Averages</h2>
+              <div class="chart-container">
+                <canvas id="monthlyRainChart" class="w-full max-h-[400px] h-[320px]"></canvas>
+              </div>
+              <div class="flex justify-end mt-4">
+                <button onclick="downloadChartImageLocal(monthlyRainChart, 'monthly_rainfall.png')"
+                  class="btn px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded flex items-center">
+                  <i class="fas fa-download mr-2"></i> Download Chart
+                </button>
+              </div>
+              </div>
+            </section>
+
+            <!-- Long-term Trend Analysis -->
+          <section class="card p-6">
+              <h2 class="text-xl font-semibold mb-4 text-secondary-100">Temperature Trend Analysis</h2>
+              <div class="flex flex-wrap items-center gap-4 mb-6">
+                <select id="trendCitySelect" class="bg-secondary-800 text-secondary-100 px-4 py-2 rounded border border-secondary-700">
+                  <option value="melbourne">Melbourne</option>
+                  <option value="sydney">Sydney</option>
+                  <option value="brisbane">Brisbane</option>
+                  <option value="perth">Perth</option>
+                  <option value="adelaide">Adelaide</option>
+                  <option value="canberra">Canberra</option>
+                </select>
+                <div class="flex items-center gap-2">
+                  <label class="text-sm text-secondary-300">From:</label>
+                  <select id="trendStartYear" class="bg-secondary-800 text-secondary-100 px-4 py-2 rounded border border-secondary-700"></select>
+                  <label class="text-sm text-secondary-300">To:</label>
+                  <select id="trendEndYear" class="bg-secondary-800 text-secondary-100 px-4 py-2 rounded border border-secondary-700"></select>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="trendChart" class="w-full max-h-[400px] h-[320px]"></canvas>
+              </div>
+              <div class="flex justify-end mt-4">
+                <button onclick="downloadChartImageLocal(trendChart, 'temperature_trend.png')"
+                  class="btn px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded flex items-center">
+                  <i class="fas fa-download mr-2"></i> Download Chart
+                </button>
+              </div>
+            </section>
           </div>
-
-          <div class="bg-gray-800 p-6 rounded-lg">
-            <h2 class="text-xl font-semibold mb-4">Daily Rainfall Comparison</h2>
-            <canvas id="rainChart" class="w-full max-h-[400px] h-[320px]"></canvas>
-            <div class="flex justify-end mt-2">
-              <button onclick="downloadChartImageLocal(rainChart, 'daily_rainfall.png')"
-                  class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">
-                  Download Rainfall Chart
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Annual Pattern Section -->
-        <div class="bg-gray-800 p-6 rounded-lg mb-6">
-          <h2 class="text-xl font-semibold mb-4">Annual Temperature Pattern</h2>
-          <div class="flex items-center gap-4 mb-4">
-            <select id="annualCitySelect" class="bg-gray-700 text-white px-4 py-2 rounded">
-              <option value="melbourne">Melbourne</option>
-              <option value="sydney">Sydney</option>
-              <option value="brisbane">Brisbane</option>
-              <option value="perth">Perth</option>
-            </select>
-            <select id="annualYearSelect" class="bg-gray-700 text-white px-4 py-2 rounded"></select>
       </div>
-          <canvas id="annualPatternChart" class="w-full h-80"></canvas>
-        </div>
 
-        <!-- Historical Extremes -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div class="bg-gray-800 p-6 rounded-lg">
-            <h2 class="text-xl font-semibold mb-4">Temperature Extremes</h2>
-            <canvas id="extremesChart" class="w-full max-h-[400px] h-[320px]"></canvas>
-            <div class="flex justify-end mt-2">
-            <button onclick="downloadChartImageLocal(extremesChart, 'temperature_extremes.png')"
-                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">
-                Download Temperature Extremes
-            </button>
+      <!-- Settings Section -->
+      <div id="settings" class="hidden">
+        <div class="grid grid-cols-1 gap-6">
+          <section class="card p-6">
+            <h1 class="text-3xl font-bold mb-6 text-secondary-100">Settings</h1>
+            
+            <!-- Unit Settings -->
+            <div class="space-y-6">
+              <div class="flex items-center justify-between p-4 bg-secondary-800 rounded-lg">
+                <div>
+                  <h3 class="text-lg font-semibold text-secondary-100">Unit System</h3>
+                  <p class="text-sm text-secondary-400">Switch between metric (°C, km/h) and imperial (°F, mph) units</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" class="sr-only peer" id="unitToggleSwitch" onchange="toggleUnits()">
+                  <div class="w-11 h-6 bg-secondary-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-secondary-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  <span class="ml-3 text-sm font-medium text-secondary-300" id="unitLabel">Metric (°C)</span>
+                </label>
+              </div>
             </div>
-          </div>
-          <div class="bg-gray-800 p-6 rounded-lg">
-            <h2 class="text-xl font-semibold mb-4">Monthly Rainfall Averages</h2>
-            <canvas id="monthlyRainChart" class="w-full max-h-[400px] h-[320px]"></canvas>
-            <div class="flex justify-end mt-2">
-            <button onclick="downloadChartImageLocal(monthlyRainChart, 'monthly_rainfall.png')"
-                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">
-                Download Monthly Rainfall
-            </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Long-term Trend Analysis -->
-        <div class="bg-gray-800 p-6 rounded-lg mb-6">
-          <h2 class="text-xl font-semibold mb-4">Temperature Trend Analysis</h2>
-          <div class="flex items-center gap-4 mb-4">
-            <select id="trendCitySelect" class="bg-gray-700 text-white px-4 py-2 rounded">
-              <option value="melbourne">Melbourne</option>
-              <option value="sydney">Sydney</option>
-              <option value="brisbane">Brisbane</option>
-              <option value="perth">Perth</option>
-            </select>
-            <div class="flex items-center gap-2">
-              <label class="text-sm">From:</label>
-              <select id="trendStartYear" class="bg-gray-700 text-white px-4 py-2 rounded"></select>
-              <label class="text-sm">To:</label>
-              <select id="trendEndYear" class="bg-gray-700 text-white px-4 py-2 rounded"></select>
-            </div>
-          </div>
-          <canvas id="trendChart" class="w-full max-h-[400px] h-[320px]"></canvas>
-          <div class="flex justify-end mt-2">
-          <button onclick="downloadChartImageLocal(trendChart, 'temperature_trend.png')"
-              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">
-              Download Trend Chart
-          </button>
-          </div>
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   </div>
+
+  <!-- Footer -->
+  <footer class="bg-secondary-800 text-secondary-400 py-4 px-6 text-center text-sm">
+    <p>&copy; 2023 Australian Weather Dashboard. Weather data provided by Open-Meteo API.</p>
+  </footer>
 
   <script>
     // Global variables
@@ -1549,73 +2140,65 @@
     function toggleUnits() {
       useMetric = !useMetric;
       
-      // Update toggle button
-      const unitText = document.getElementById('unitText');
-      unitText.textContent = useMetric ? '°C / km/h' : '°F / mph';
+      // Update toggle switch and label
+      const unitLabel = document.getElementById('unitLabel');
+      unitLabel.textContent = useMetric ? 'Metric (°C)' : 'Imperial (°F)';
       
-      // Update all charts
-      if (forecastChart) {
-        updateForecastChart();
-      }
-      if (tempChart) {
-        updatePastWeather();
-      }
-      if (annualPatternChart) {
-        updateAnnualPattern();
-      }
-      if (extremesChart) {
-        updateExtremesAndRainfall();
-      }
-      if (trendChart) {
-        updateTrendAnalysis();
-      }
-      
-      // Update all displayed weather data
-      Object.entries(cities).forEach(([city, [lat, lon]]) => {
-        updateCityWeatherIcon(city, lat, lon);
-      });
-      
-      // Update current weather cards
+      // Update all weather cards
       const weatherElements = document.querySelectorAll('[data-weather]');
       weatherElements.forEach(element => {
         const type = element.getAttribute('data-weather');
         const value = parseFloat(element.getAttribute('data-value'));
-        const icon = element.getAttribute('data-icon') || '';
         
         if (type === 'temperature') {
-          element.textContent = `${formatTemperature(value)} ${icon}`;
+          const temp = useMetric ? value : celsiusToFahrenheit(value);
+          element.innerHTML = `${temp.toFixed(1)}<span class="weather-unit">${useMetric ? '°C' : '°F'}</span>`;
         } else if (type === 'wind') {
-          element.textContent = `${formatWindSpeed(value)} ${icon}`;
+          const speed = useMetric ? value : kmhToMph(value);
+          element.innerHTML = `${speed.toFixed(1)}<span class="weather-unit">${useMetric ? 'km/h' : 'mph'}</span>`;
         }
       });
 
-      // Update map legends if they exist
-      if (window.currentLegend) {
-        map.removeControl(window.currentLegend);
-        createLegend(currentLayer).addTo(map);
-      }
-
-      // Update choropleth layers if they exist
-      if (temperatureLayer) {
-        temperatureLayer.remove();
-        temperatureLayer = createChoroplethLayer('temperature');
-        if (currentLayer === 'temperature') {
-          temperatureLayer.addTo(map);
-        }
-      }
-      if (rainfallLayer) {
-        rainfallLayer.remove();
-        rainfallLayer = createChoroplethLayer('rainfall');
-        if (currentLayer === 'rainfall') {
-          rainfallLayer.addTo(map);
-        }
-      }
+      // Refresh current weather display
+      const [lat, lon] = cities[document.getElementById('currentCitySelect').value];
+      loadCurrentWeather(lat, lon);
+      
+      // Update all charts if they exist
+      if (forecastChart) updateForecastChart();
+      if (tempChart) updatePastWeather();
+      if (annualPatternChart) updateAnnualPattern();
+      if (extremesChart) updateExtremesAndRainfall();
+      if (trendChart) updateTrendAnalysis();
     }
 
     function showSection(name) {
+      // Hide all sections
       document.getElementById("current").classList.add("hidden");
       document.getElementById("past").classList.add("hidden");
+      document.getElementById("map-section").classList.add("hidden");
+      document.getElementById("settings").classList.add("hidden");
+      
+      // Show the selected section
+      if (name === 'map') {
+        document.getElementById("map-section").classList.remove("hidden");
+        // Trigger a resize event to ensure the map renders correctly
+        if (map) {
+          setTimeout(() => {
+            map.invalidateSize();
+          }, 100);
+        }
+      } else {
       document.getElementById(name).classList.remove("hidden");
+      }
+      
+      // Update active state for navigation links
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.textContent.trim().toLowerCase().includes(name)) {
+          link.classList.add('active');
+        }
+      });
     }
 
     function windDirection(deg) {
@@ -1626,24 +2209,122 @@
     // use BOM to retrieve the most recent data
     async function loadCurrentWeather(lat, lon) {
       try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&timezone=auto`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,sunrise,sunset&hourly=temperature_2m,relativehumidity_2m,visibility,pressure_msl,uv_index&timezone=auto`;
         const res = await fetch(url);
         const data = await res.json();
 
         const current = data.current_weather;
         const daily = data.daily;
+        const hourly = data.hourly;
+
+        // Get current hour index
+        const currentTime = new Date();
+        const currentHourIndex = currentTime.getHours();
+
+        // Calculate sun progress
+        const sunrise = new Date(daily.sunrise[0]);
+        const sunset = new Date(daily.sunset[0]);
+        const totalDayLength = sunset - sunrise;
+        const currentProgress = Math.max(0, Math.min(100, ((currentTime - sunrise) / totalDayLength) * 100));
 
         const cards = document.getElementById("cards");
+        cards.className = "grid-container"; // Add this line to use the new grid layout
         cards.innerHTML = '';
-        cards.innerHTML += createCard("Temperature", current.temperature, "🌡️", "temperature");
-        cards.innerHTML += createCard("Wind", current.windspeed, "💨", "wind");
-        cards.innerHTML += createCard("Direction", windDirection(current.winddirection), "🧭");
-        cards.innerHTML += createCard("Rain", `${daily.precipitation_sum[0]} mm`, "☔");
 
-        updateForecastChart(daily);
+        // Temperature with feels like
+        cards.innerHTML += createCard(
+          "Temperature",
+          current.temperature,
+          "🌡️",
+          "temperature",
+          { type: 'feels-like', value: hourly.temperature_2m[currentHourIndex] }
+        );
+
+        // Wind with direction
+        cards.innerHTML += createCard(
+          "Wind",
+           current.windspeed,
+          "💨",
+          "wind",
+          { type: 'direction', value: windDirection(current.winddirection) }
+        );
+
+        // Humidity with simple percentage
+        cards.innerHTML += createCard(
+          "Humidity",
+          hourly.relativehumidity_2m[currentHourIndex],
+          "💧",
+          "humidity",
+          null  // Remove the circular progress by passing null instead of the progress object
+        );
+
+        // UV Index with color indicator
+        const uvIndex = hourly.uv_index[currentHourIndex];
+        const uvLabel = getUVLabel(uvIndex);
+        cards.innerHTML += createCard(
+          "UV Index",
+          uvIndex.toFixed(1),
+          "🔆",
+          "uv",
+          { type: 'uv-index', value: uvIndex, label: uvLabel }
+        );
+
+        // Visibility (👁️ eye symbol)
+cards.innerHTML += createCard(
+  "Visibility",
+  (hourly.visibility[currentHourIndex] / 1000).toFixed(1) + " km",
+  "👁️",
+  "visibility",
+  {} // ensure this is passed, even if unused
+);
+
+// Air Pressure (📊 or 🧭 or 🎚️ also works)
+cards.innerHTML += createCard(
+  "Pressure",
+  hourly.pressure_msl[currentHourIndex].toFixed(0) + " hPa",
+  "📊",
+  "pressure",
+  {}
+);
+
+        // Sun Progress
+        cards.innerHTML += createCard(
+          "Daylight",
+          formatTime(sunrise) + " - " + formatTime(sunset),
+          "🌅",
+          "sun",
+          {
+            type: 'sun-progress',
+            sunrise: formatTime(sunrise),
+            sunset: formatTime(sunset),
+            progress: currentProgress
+          }
+        );
+
+        // Rain
+cards.innerHTML += createCard(
+  "Rain",
+  daily.precipitation_sum[0] + " mm",
+  "☔",
+  "rain",
+  {}
+);
+
       } catch (error) {
         console.error("Error loading current weather:", error);
       }
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+
+    function getUVLabel(index) {
+      if (index <= 2) return 'Low';
+      if (index <= 5) return 'Moderate';
+      if (index <= 7) return 'High';
+      if (index <= 10) return 'Very High';
+      return 'Extreme';
     }
 
     async function loadPastWeatherCompare(cityA, cityB, year, month) {
@@ -1704,22 +2385,138 @@ function updatePastWeather() {
   loadPastWeatherCompare(cityA, cityB, year, month);
 }
 
-    function createCard(title, value, icon = '', type = '') {
+    function createCard(title, value, icon = '', type = '', extraInfo = null) {
       let displayValue = value;
       let originalValue = '';
+      let extraContent = '';
+      let unitText = '';
+      let description = getWeatherDescription(type, value);
       
       if (type === 'temperature') {
         originalValue = parseFloat(value);
-        displayValue = formatTemperature(originalValue);
+        displayValue = useMetric ? originalValue.toFixed(1) : celsiusToFahrenheit(originalValue).toFixed(1);
+        unitText = useMetric ? '°C' : '°F';
       } else if (type === 'wind') {
         originalValue = parseFloat(value);
-        displayValue = formatWindSpeed(originalValue);
+        displayValue = useMetric ? originalValue.toFixed(1) : kmhToMph(originalValue).toFixed(1);
+        unitText = useMetric ? 'km/h' : 'mph';
+      } else if (type === 'humidity') {
+        displayValue = parseFloat(value).toFixed(0);
+        unitText = '%';
+      } else if (type === 'visibility') {
+        displayValue = parseFloat(value).toFixed(1);
+        unitText = 'km';
+      } else if (type === 'pressure') {
+        displayValue = parseFloat(value).toFixed(0);
+        unitText = 'hPa';
+      } else if (type === 'rain') {
+        displayValue = parseFloat(value).toFixed(1);
+        unitText = 'mm';
       }
 
-      return `<div class="bg-gray-800 p-4 rounded-lg shadow-md">
-        <h2 class="text-md font-semibold mb-2">${title}</h2>
-        <p class="text-2xl font-bold" data-weather="${type}" data-value="${originalValue}" data-icon="${icon}">${displayValue} ${icon}</p>
-      </div>`;
+      // Add extra information if provided
+      if (extraInfo) {
+        if (extraInfo.type === 'sun-progress') {
+          extraContent = `
+            <div class="mt-4">
+              <div class="time-range">
+                <span>${extraInfo.sunrise}</span>
+                <span>${extraInfo.sunset}</span>
+              </div>
+              <div class="sun-progress">
+                <div class="sun-indicator" style="left: ${extraInfo.progress}%"></div>
+              </div>
+            </div>
+          `;
+        } else if (extraInfo.type === 'uv-index') {
+          extraContent = `
+            <div class="uv-indicator">
+              <div class="uv-marker" style="margin-left: ${extraInfo.value * 10}%"></div>
+            </div>
+            <div class="uv-label">${extraInfo.label}</div>
+          `;
+        }
+      }
+
+      return `
+        <div class="weather-card rounded-lg p-4 fade-in">
+          <div class="weather-content">
+            <div class="flex items-center justify-between">
+              <h2 class="weather-title">${title}</h2>
+              <i class="weather-icon fas ${getIconClass(type)}" style="color: #60a5fa;"></i>
+          </div>
+            <div class="weather-info text-center">
+              <div class="weather-value" data-weather="${type}" data-value="${originalValue}">
+                ${displayValue}<span class="weather-unit">${unitText}</span>
+              </div>
+              ${extraContent}
+              <div class="weather-description">${description}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function getIconClass(type) {
+      switch(type) {
+  case 'temperature': return 'fa-temperature-three-quarters'; // better than fa-temperature-high
+  case 'wind': return 'fa-wind';
+  case 'humidity': return 'fa-droplet'; // cleaner in FA6
+  case 'uv': return 'fa-circle-radiation'; // NEW for UV (distinct from sun)
+  case 'visibility': return 'fa-eye';
+  case 'pressure': return 'fa-gauge-high'; // replaces tachometer-alt in FA6
+  case 'sun': return 'fa-sun-plant-wilt'; // more metaphorical for daylight span
+  case 'rain': return 'fa-cloud-rain'; // simpler than fa-cloud-showers-heavy
+  default: return 'fa-circle';
+}
+    }
+
+    function getWeatherDescription(type, value) {
+      switch(type) {
+        case 'temperature':
+          const temp = parseFloat(value);
+          if (temp > 30) return 'Very hot conditions';
+          if (temp > 25) return 'Warm conditions';
+          if (temp > 20) return 'Mild conditions';
+          if (temp > 15) return 'Cool conditions';
+          return 'Cold conditions';
+        case 'wind':
+          const wind = parseFloat(value);
+          if (wind > 50) return 'Strong winds';
+          if (wind > 30) return 'Moderate winds';
+          return 'Light breeze';
+        case 'humidity':
+          const humidity = parseFloat(value);
+          if (humidity > 70) return 'Very humid';
+          if (humidity > 50) return 'Moderately humid';
+          return 'Comfortable humidity';
+        case 'uv':
+          const uv = parseFloat(value);
+          if (uv > 8) return 'Very high UV exposure';
+          if (uv > 5) return 'High UV exposure';
+          if (uv > 2) return 'Moderate UV exposure';
+          return 'Low UV exposure';
+        case 'visibility':
+          const vis = parseFloat(value);
+          if (vis > 20) return 'Excellent visibility';
+          if (vis > 10) return 'Good visibility';
+          return 'Limited visibility';
+        case 'pressure':
+          const pressure = parseFloat(value);
+          if (pressure > 1013) return 'High pressure system';
+          if (pressure < 1013) return 'Low pressure system';
+          return 'Normal atmospheric pressure';
+        case 'sun':
+          return 'Daylight hours and sun position';
+        case 'rain':
+          const rain = parseFloat(value);
+          if (rain > 10) return 'Heavy rainfall';
+          if (rain > 5) return 'Moderate rainfall';
+          if (rain > 0) return 'Light rainfall';
+          return 'No rainfall';
+        default:
+          return '';
+      }
     }
 
     document.getElementById("currentCitySelect").addEventListener("change", (e) => {
@@ -1923,62 +2720,62 @@ function updatePastWeather() {
         const response = await fetch(`http://127.0.0.1:5000/weather/raw?city=${city.charAt(0).toUpperCase() + city.slice(1)}`);
         const data = await response.json();
         
-        const cityKey = city.charAt(0).toUpperCase() + city.slice(1);
-        const cityData = data[cityKey].filter(record => record.date.startsWith(year));
+            const cityKey = city.charAt(0).toUpperCase() + city.slice(1);
+            const cityData = data[cityKey].filter(record => record.date.startsWith(year));
 
-        // Process data for seasonal extremes
-        const seasonalData = {
-          Summer: { max: [], min: [] },
-          Autumn: { max: [], min: [] },
-          Winter: { max: [], min: [] },
-          Spring: { max: [], min: [] }
-        };
+            // Process data for seasonal extremes
+            const seasonalData = {
+              Summer: { max: [], min: [] },
+              Autumn: { max: [], min: [] },
+              Winter: { max: [], min: [] },
+              Spring: { max: [], min: [] }
+            };
 
-        cityData.forEach(record => {
-          const month = new Date(record.date).getMonth();
-          let season;
-          if (month >= 11 || month <= 1) season = 'Summer';
-          else if (month >= 2 && month <= 4) season = 'Autumn';
-          else if (month >= 5 && month <= 7) season = 'Winter';
-          else season = 'Spring';
+            cityData.forEach(record => {
+              const month = new Date(record.date).getMonth();
+              let season;
+              if (month >= 11 || month <= 1) season = 'Summer';
+              else if (month >= 2 && month <= 4) season = 'Autumn';
+              else if (month >= 5 && month <= 7) season = 'Winter';
+              else season = 'Spring';
 
-          seasonalData[season].max.push(record.temperature_2m_max);
-          seasonalData[season].min.push(record.temperature_2m_min);
-          });
+              seasonalData[season].max.push(record.temperature_2m_max);
+              seasonalData[season].min.push(record.temperature_2m_min);
+            });
 
-        // Calculate seasonal extremes
-        const extremes = Object.entries(seasonalData).map(([season, data]) => ({
-          season,
-          max: data.max.length > 0 ? Math.max(...data.max) : null,
-          min: data.min.length > 0 ? Math.min(...data.min) : null
-        }));
+            // Calculate seasonal extremes
+            const extremes = Object.entries(seasonalData).map(([season, data]) => ({
+              season,
+              max: data.max.length > 0 ? Math.max(...data.max) : null,
+              min: data.min.length > 0 ? Math.min(...data.min) : null
+            }));
 
-        // Update extremes chart
-        extremesChart.data.datasets[0].data = extremes.map(e => 
-          e.max !== null ? (useMetric ? e.max : celsiusToFahrenheit(e.max)) : null
-        );
-        extremesChart.data.datasets[1].data = extremes.map(e => 
-          e.min !== null ? (useMetric ? e.min : celsiusToFahrenheit(e.min)) : null
-        );
+            // Update extremes chart
+            extremesChart.data.datasets[0].data = extremes.map(e => 
+              e.max !== null ? (useMetric ? e.max : celsiusToFahrenheit(e.max)) : null
+            );
+            extremesChart.data.datasets[1].data = extremes.map(e => 
+              e.min !== null ? (useMetric ? e.min : celsiusToFahrenheit(e.min)) : null
+            );
+            
+            extremesChart.update();
 
-        extremesChart.update();
+            // Process monthly rainfall data
+            const monthlyRain = Array(12).fill(0);
+            cityData.forEach(record => {
+              const month = new Date(record.date).getMonth();
+              monthlyRain[month] += record.precipitation_sum;
+            });
 
-        // Process monthly rainfall data
-        const monthlyRain = Array(12).fill(0);
-        cityData.forEach(record => {
-          const month = new Date(record.date).getMonth();
-          monthlyRain[month] += record.precipitation_sum;
-        });
-
-        // Update rainfall chart
-        monthlyRainChart.data.datasets[0].data = monthlyRain;
-        monthlyRainChart.update();
+            // Update rainfall chart
+            monthlyRainChart.data.datasets[0].data = monthlyRain;
+            monthlyRainChart.update();
       } catch (error) {
         console.error('Error updating extremes and rainfall:', error);
         }
       }
 
-      function downloadChartImageLocal(chart, filename = 'chart.png') {
+    function downloadChartImageLocal(chart, filename = 'chart.png') {
       chart.update(); 
       setTimeout(() => {
       const link = document.createElement('a');
@@ -1993,6 +2790,287 @@ function updatePastWeather() {
     // Add event listeners for forecast city selectors
     document.getElementById('forecastCityA').addEventListener('change', updateForecastChart);
     document.getElementById('forecastCityB').addEventListener('change', updateForecastChart);
+  </script>
+
+  <!-- Add this right before the closing </body> tag -->
+    <!-- Chat Interface -->
+    <div id="chat-container" class="fixed bottom-4 right-4 w-96 bg-secondary-800 rounded-lg shadow-xl transition-all duration-300 transform" style="z-index: 1000;">
+      <!-- Chat Header -->
+      <div class="flex items-center justify-between p-4 bg-primary-600 rounded-t-lg cursor-pointer" id="chat-header">
+        <div class="flex items-center">
+          <i class="fas fa-robot mr-2 text-white"></i>
+          <h3 class="text-white font-semibold">Weather Assistant</h3>
+        </div>
+        <div class="flex items-center">
+          <button id="minimize-chat" class="text-white hover:text-gray-200 focus:outline-none">
+            <i class="fas fa-minus"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Chat Messages -->
+      <div id="chat-messages" class="h-96 overflow-y-auto p-4 space-y-4" style="display: none;">
+        <!-- Welcome Message -->
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center">
+              <i class="fas fa-robot text-white text-sm"></i>
+            </div>
+          </div>
+          <div class="ml-3 bg-primary-500 rounded-lg p-3 max-w-[80%]">
+            <p class="text-white">Hello! I'm your weather assistant. How can I help you today?</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Chat Input -->
+      <div id="chat-input" class="p-4 border-t border-secondary-700" style="display: none;">
+        <div class="flex items-center">
+          <input type="text" id="user-input" 
+                 class="flex-1 bg-secondary-700 text-white rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                 placeholder="Ask about weather...">
+          <button id="send-message" 
+                  class="bg-primary-500 text-white px-4 py-2 rounded-r-lg hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Add this to your existing JavaScript code
+      document.addEventListener('DOMContentLoaded', function() {
+        const chatContainer = document.getElementById('chat-container');
+        const chatHeader = document.getElementById('chat-header');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-message');
+        const minimizeButton = document.getElementById('minimize-chat');
+        let isChatOpen = false;
+
+        // Toggle chat visibility
+        function toggleChat() {
+          isChatOpen = !isChatOpen;
+          chatMessages.style.display = isChatOpen ? 'block' : 'none';
+          chatInput.style.display = isChatOpen ? 'block' : 'none';
+          minimizeButton.innerHTML = isChatOpen ? '<i class="fas fa-minus"></i>' : '<i class="fas fa-plus"></i>';
+        }
+
+        chatHeader.addEventListener('click', function(e) {
+          if (e.target !== minimizeButton && e.target !== minimizeButton.querySelector('i')) {
+            toggleChat();
+          }
+        });
+
+        minimizeButton.addEventListener('click', toggleChat);
+
+        // Send message function
+        function sendMessage() {
+          const message = userInput.value.trim();
+          if (message) {
+            // Add user message
+            addMessage(message, true);
+            
+            // Process the message and get AI response
+            processMessage(message);
+            
+            // Clear input
+            userInput.value = '';
+          }
+        }
+
+        // Add message to chat
+        function addMessage(message, isUser = false) {
+          const messageDiv = document.createElement('div');
+          messageDiv.className = 'flex items-start ' + (isUser ? 'justify-end' : '');
+          
+          const iconAndMessage = `
+            ${isUser ? '' : `
+              <div class="flex-shrink-0">
+                <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center">
+                  <i class="fas fa-robot text-white text-sm"></i>
+                </div>
+              </div>
+            `}
+            <div class="ml-3 ${isUser ? 'bg-primary-600' : 'bg-primary-500'} rounded-lg p-3 max-w-[80%]">
+              <p class="text-white">${message}</p>
+            </div>
+          `;
+          
+          messageDiv.innerHTML = iconAndMessage;
+          chatMessages.appendChild(messageDiv);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Replace the processMessage function with this enhanced version
+        async function processMessage(message) {
+          const lowerMessage = message.toLowerCase();
+          let response = '';
+          
+          // Get current city and weather data
+          const currentCity = document.getElementById('currentCitySelect').value;
+          const cityName = currentCity.charAt(0).toUpperCase() + currentCity.slice(1);
+          
+          // Helper function to get weather data
+          function getWeatherData(type) {
+            const element = document.querySelector(`[data-weather="${type}"]`);
+            return element ? element.getAttribute('data-value') || element.textContent : null;
+          }
+
+          // Complex pattern matching for various weather queries
+          if (lowerMessage.match(/^(hi|hello|hey|greetings)/)) {
+            response = `Hello! I'm your weather assistant for ${cityName}. You can ask me about:
+            • Current weather conditions
+            • Temperature and feels like
+            • Wind speed and direction
+            • Humidity and UV index
+            • Rainfall and forecast
+            • Weather comparisons between cities`;
+
+          } else if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
+            response = `I can help you with:
+            • Current weather updates
+            • Detailed forecasts
+            • Weather comparisons
+            • Weather alerts and conditions
+            • Sunrise/sunset times
+            Just ask me anything about the weather!`;
+
+          } else if (lowerMessage.match(/what('s|\s+is)\s+the\s+weather(\s+like)?/) || lowerMessage.match(/how('s|\s+is)\s+the\s+weather/) || lowerMessage.match(/current\s+weather/)) {
+            const temp = getWeatherData('temperature');
+            const wind = getWeatherData('wind');
+            const humidity = getWeatherData('humidity');
+            const rain = getWeatherData('rain');
+            const uv = getWeatherData('uv');
+
+            let conditions = [];
+            
+            // Temperature assessment
+            if (parseFloat(temp) > 30) conditions.push("very hot");
+            else if (parseFloat(temp) > 25) conditions.push("warm");
+            else if (parseFloat(temp) > 15) conditions.push("mild");
+            else if (parseFloat(temp) > 10) conditions.push("cool");
+            else conditions.push("cold");
+
+            // Wind assessment
+            if (parseFloat(wind) > 30) conditions.push("windy");
+            else if (parseFloat(wind) > 15) conditions.push("breezy");
+
+            // Humidity assessment
+            if (parseFloat(humidity) > 70) conditions.push("humid");
+            else if (parseFloat(humidity) < 30) conditions.push("dry");
+
+            const weatherDescription = conditions.length > 0 
+              ? `It's ${conditions.join(" and ")} today.` 
+              : "Weather conditions are moderate today.";
+
+            response = `Current weather in ${cityName}:
+            ${weatherDescription}
+            
+            Detailed conditions:
+            • Temperature: ${formatTemperature(temp)}
+            • Wind Speed: ${formatWindSpeed(wind)}
+            • Humidity: ${humidity}%
+            • Rainfall: ${rain}
+            • UV Index: ${uv}
+            
+            Would you like more specific details about any of these conditions?`;
+
+          } else if (lowerMessage.match(/(temperature|how (hot|cold|warm))/)) {
+            const temp = getWeatherData('temperature');
+            const humidity = getWeatherData('humidity');
+            response = `In ${cityName}, the current temperature is ${formatTemperature(temp)}. 
+            With ${humidity}% humidity, it ${parseFloat(temp) > 25 ? 'might feel quite warm' : 
+            parseFloat(temp) < 15 ? 'might feel a bit chilly' : 'should feel comfortable'}.`;
+
+          } else if (lowerMessage.match(/(wind|breezy|windy)/)) {
+            const wind = getWeatherData('wind');
+            response = `The wind speed in ${cityName} is currently ${formatWindSpeed(wind)}. 
+            ${parseFloat(wind) > 30 ? 'It\'s quite windy today!' : 
+            parseFloat(wind) > 15 ? 'There\'s a moderate breeze.' : 'The wind is fairly light.'}`;
+
+          } else if (lowerMessage.match(/(humidity|humid|moisture)/)) {
+            const humidity = getWeatherData('humidity');
+            response = `The current humidity in ${cityName} is ${humidity}%. 
+            ${parseFloat(humidity) > 70 ? 'It\'s quite humid today.' : 
+            parseFloat(humidity) < 30 ? 'It\'s relatively dry today.' : 'This is a comfortable humidity level.'}`;
+
+          } else if (lowerMessage.match(/(rain|rainfall|precipitation)/)) {
+            const rain = getWeatherData('rain');
+            response = `${cityName} has received ${rain} of rainfall. 
+            ${parseFloat(rain) > 10 ? 'That\'s significant rainfall!' : 
+            parseFloat(rain) > 5 ? 'We\'ve had moderate rainfall.' : 
+            parseFloat(rain) > 0 ? 'We\'ve had light rainfall.' : 'No rainfall recorded.'}`;
+
+          } else if (lowerMessage.match(/(uv|ultra\s*violet)/)) {
+            const uv = getWeatherData('uv');
+            let uvAdvice = '';
+            if (parseFloat(uv) >= 8) uvAdvice = 'Take extra precautions against sun exposure!';
+            else if (parseFloat(uv) >= 5) uvAdvice = 'Use sun protection when outdoors.';
+            else if (parseFloat(uv) >= 2) uvAdvice = 'Moderate UV levels, basic sun protection is advised.';
+            else uvAdvice = 'UV levels are low, but basic sun protection is still recommended.';
+            response = `The UV index in ${cityName} is ${uv}. ${uvAdvice}`;
+
+          } else if (lowerMessage.match(/(forecast|weather\s+tomorrow|next\s+days?)/)) {
+            response = `I can tell you about the 7-day forecast for ${cityName}. 
+            You can view the detailed forecast chart in the forecast section, which shows:
+            • Daily temperature ranges
+            • Expected conditions
+            • Rainfall probability
+            Would you like me to explain how to read the forecast chart?`;
+
+          } else if (lowerMessage.match(/(pressure|barometric|atmospheric)/)) {
+            const pressure = getWeatherData('pressure');
+            response = `The atmospheric pressure in ${cityName} is ${pressure} hPa. 
+            ${parseFloat(pressure) > 1013 ? 'This high pressure typically indicates stable weather.' : 
+            'This low pressure might indicate changing weather conditions.'}`;
+
+          } else if (lowerMessage.match(/(visibility|clear|fog|foggy)/)) {
+            const visibility = getWeatherData('visibility');
+            response = `Current visibility in ${cityName} is ${visibility}. 
+            ${parseFloat(visibility) > 10 ? 'Visibility is excellent!' : 
+            parseFloat(visibility) > 5 ? 'Visibility is good.' : 'Visibility is reduced.'}`;
+
+          } else if (lowerMessage.match(/(compare|difference|between cities)/)) {
+            response = `I can help you compare weather between cities. You can:
+            • View temperature differences
+            • Compare rainfall patterns
+            • Check wind speed variations
+            Use the comparison tools in the forecast section for detailed analysis.`;
+
+          } else if (lowerMessage.match(/(weather|conditions|what's it like)/)) {
+            const temp = getWeatherData('temperature');
+            const wind = getWeatherData('wind');
+            const humidity = getWeatherData('humidity');
+            response = `Here's the current weather in ${cityName}:
+            • Temperature: ${formatTemperature(temp)}
+            • Wind Speed: ${formatWindSpeed(wind)}
+            • Humidity: ${humidity}%
+            Would you like more specific details about any of these conditions?`;
+
+          } else {
+            response = `I'm not sure about that, but I can help you with:
+            • Current weather conditions
+            • Temperature and wind information
+            • Humidity and UV levels
+            • Rainfall and forecasts
+            • City weather comparisons
+            Just ask me about any of these topics!`;
+          }
+          
+          // Add AI response with a slight delay to feel more natural
+          setTimeout(() => addMessage(response), 500);
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            sendMessage();
+          }
+        });
+      });
   </script>
 </body>
 </html>
